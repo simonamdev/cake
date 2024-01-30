@@ -25,7 +25,7 @@ for model in models:
         snapshot_download(
             repo_id=model.modelId,
             repo_type='model',
-            allow_patterns=['*.json', '*.safetensors'],
+            allow_patterns=['*.safetensors'],
             local_dir_use_symlinks=True,
             local_dir=os.path.join(download_folder, 'results', model.modelId),
             cache_dir=os.path.join(download_folder, 'cache')
