@@ -16,7 +16,7 @@ with open(model_list_file_path, 'r') as f:
             line.strip().replace('\n', '')
         )
 
-models = api.list_models(filter=ModelFilter(tags=['pipeline_tag=text-generation', 'library=safetensors']))
+models = api.list_models(filter=ModelFilter(task='text-generation', library='safetensors'))
 for model in models:
     print(model.modelId)
     if model.modelId in already_downloaded_model_ids:
