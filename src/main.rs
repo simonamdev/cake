@@ -1,6 +1,8 @@
 use std::fs::File;
 use std::io::{self, Read};
 
+use serde_json::Value;
+
 fn main() {
     println!("Hello, world!");
     let file_path = "/home/simon/Downloads/models/mistral-7B-v0.1/model-00001-of-00002.safetensors";
@@ -25,6 +27,24 @@ fn hash_safetensors_file(file_path: String) -> io::Result<()> {
     file.take(json_header_length).read_to_end(&mut json_buffer)?;
 
     println!("{:?}", json_buffer);
+    // Switch the buffer to a string
+    let json_string = String::from_utf8_lossy(&json_buffer);
+
+    let json_value: Result<Value, _> = serde_json::from_str(&json_string);
+
+    match json_value {
+        Ok(value) => {
+            // Query keys
+            if let Value::Object(map) = value {
+                for (key, value) in map.iter() {
+                    println!("Key: {}, Value: {}", key, value);
+                }
+            } else {
+                eprintln!("JSON is not an object");
+            }
+        }
+        Err(e) => eprintln!("Error deserializing JSON: {}", e),
+    }
 
     Ok(())
 }
