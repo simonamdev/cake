@@ -16,9 +16,15 @@ fn hash_safetensors_file(file_path: String) -> io::Result<()> {
     file.read_exact(&mut buffer)?;
 
     // convert to u64
-    let value = u64::from_le_bytes(buffer);
+    let json_header_length = u64::from_le_bytes(buffer);
 
-    println!("{}", value);
+    println!("{}", json_header_length);
+
+    // This unwrap feels odd here but what do I know I'm new to rust
+    let mut json_buffer = Vec::with_capacity(json_header_length.try_into().unwrap());
+    file.take(json_header_length).read_to_end(&mut json_buffer)?;
+
+    println!("{:?}", json_buffer);
 
     Ok(())
 }
