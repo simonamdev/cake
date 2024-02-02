@@ -24,8 +24,8 @@ for model in models:
     try:
         force_download =False
         resume_download = True
-        # force_download = model.modelId == 'bigscience/bloom'
-        # resume_download = model.modelId != 'bigscience/bloom'
+        # force_download = model.modelId == 'bigscience/bloomz'
+        # resume_download = model.modelId != 'bigscience/bloomz'
         snapshot_download(
             repo_id=model.modelId,
             repo_type='model',
@@ -35,7 +35,7 @@ for model in models:
             cache_dir=os.path.join(download_folder, 'cache'),
             force_download=force_download,
             resume_download=resume_download,
-            max_workers=4
+            max_workers=2
         )
         with open(model_list_file_path, 'a') as f:
             f.write(f'{model.modelId}\n')
@@ -43,5 +43,8 @@ for model in models:
         print(e)
         continue
     except utils._errors.HfHubHTTPError as e:
+        print(e)
+        continue
+    except OSError as e:
         print(e)
         continue
