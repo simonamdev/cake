@@ -24,9 +24,10 @@ fn hash_safetensors_file(file_path: String) -> io::Result<()> {
 
     // This unwrap feels odd here but what do I know I'm new to rust
     let mut json_buffer = Vec::with_capacity(json_header_length.try_into().unwrap());
-    file.take(json_header_length).read_to_end(&mut json_buffer)?;
+    file.take(json_header_length)
+        .read_to_end(&mut json_buffer)?;
 
-    println!("{:?}", json_buffer);
+    // println!("{:?}", json_buffer);
     // Switch the buffer to a string
     let json_string = String::from_utf8_lossy(&json_buffer);
 
@@ -38,6 +39,14 @@ fn hash_safetensors_file(file_path: String) -> io::Result<()> {
             if let Value::Object(map) = value {
                 for (key, value) in map.iter() {
                     println!("Key: {}, Value: {}", key, value);
+                    if key != "__metadata__" {
+                        // Get the data_offsets
+                        let offsets = value.get("data_offsets").and_then(Value::as_array).unwrap();
+                        let offset_start = offsets[0].as_u64().unwrap();
+                        let offset_end = offsets[1].as_u64().unwrap();
+                        let offset_diff = offset_end - offset_start;
+                        println!("{:?}", offset_diff)
+                    }
                 }
             } else {
                 eprintln!("JSON is not an object");
