@@ -45,7 +45,11 @@ fn hash_safetensors_file(file_path: String) -> io::Result<()> {
                         let offset_start = offsets[0].as_u64().unwrap();
                         let offset_end = offsets[1].as_u64().unwrap();
                         let offset_diff = offset_end - offset_start;
-                        println!("{:?}", offset_diff)
+                        println!("{:?}", offset_diff);
+
+                        // Read in the bytes of that offset
+                        let mut tensor_buffer: Vec<u8> =
+                            Vec::with_capacity(offset_diff.try_into().unwrap());
                     }
                 }
             } else {
