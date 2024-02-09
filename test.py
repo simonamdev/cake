@@ -16,7 +16,7 @@ print(file_path_two)
 
 def read_bytes(f: BufferedReader, start: int, length: int) -> bytes:
     f.seek(start)
-    content = f.read(length)
+    content = f.read(length // 8)
     return content
     
 def hash_safetensors_file(file_path: str) -> dict:
