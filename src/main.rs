@@ -19,7 +19,7 @@ fn main() {
     //     }
     // }
 
-    let root_models_dir = "/media/simon/models/results";
+    let root_models_dir = "/media/simon/models3/results";
     let model_directories = get_models_by_account(root_models_dir);
     for (key, value) in model_directories {
         println!("{}, {:?}", key, value);
@@ -142,12 +142,12 @@ fn hash_safetensors_file(file_path: &str) -> Result<Value, io::Error> {
                         let offset_diff = offset_end - offset_start;
                         println!("Offset Difference: {:?}", offset_diff);
         
-                        println!("Seeking to data");
+                        // println!("Seeking to data");
                         // Seek to the start position of the tensor data
                         file.seek(SeekFrom::Start(offset_start))?;
         
                         // Read tensor data into buffer
-                        println!("Reading into buffer");
+                        // println!("Reading into buffer");
                         let mut tensor_buffer = vec![0; (offset_diff / 8).try_into().unwrap()];
                         file.read_exact(&mut tensor_buffer)?;
         
