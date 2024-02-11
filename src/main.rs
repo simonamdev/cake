@@ -9,6 +9,7 @@ use serde_json::{json, value, Error, Map, Value};
 use sha2::{Sha256, Digest};
 
 use rayon::prelude::*;
+use indicatif::{ProgressBar, ProgressStyle};
 
 fn main() {
     // let file_path = "/home/simon/Downloads/models/mistral-7B-v0.1/model-00001-of-00002.safetensors";
@@ -25,8 +26,13 @@ fn main() {
     let root_models_dir = "/media/simon/models3/results";
     let model_directories_by_account = get_models_by_account(root_models_dir);
 
+    let account_count = model_directories_by_account.keys().len();
+    
+    let bar = ProgressBar::new(account_count.try_into().unwrap());
+
     for (model_account, model_dirs) in model_directories_by_account {
-        println!("{}, {:?}", model_account, model_dirs);
+        bar.inc(1);
+        // println!("{}/{} {}, {:?}", i, account_count, model_account, model_dirs);
 
         for model_name_dir in model_dirs {
             let model_safetensors = get_model_safetensor_files(&model_name_dir);
@@ -46,13 +52,12 @@ fn main() {
                 }
             }
             let final_output_json = merge_hash_results(hashed_model_safetensors);
-            println!("{:?}", final_output_json);
+            // println!("{:?}", final_output_json);
             // Form the file path for the results
             let model_account_clone = model_account.clone();
             // Forgive me for this but pathbuf wasn't funcitoning as expected
             let abs_dir: String =  env::current_dir().unwrap().to_string_lossy().into_owned().clone() + &"/results/".to_owned() + &model_account_clone.clone() + "/" + &model_name;
             // Build the dir in case it doesnt exist
-            println!("==== {:?}", abs_dir);
             let abs_dir_clone: String = abs_dir.clone();
             fs::create_dir_all(abs_dir).unwrap();
             let target_file_path = abs_dir_clone.to_owned() + "/hashes.json";
@@ -60,6 +65,7 @@ fn main() {
             write_json_to_file(final_output_json, target_file_path).unwrap();
         }
     }
+    bar.finish();
 }
 
 fn write_json_to_file(data: Value, file_path: String) -> io::Result<()> {
@@ -161,7 +167,7 @@ fn hash_safetensors_file(file_path: &str) -> Result<Value, io::Error> {
     file.read_exact(&mut buffer)?;
     let json_header_length = u64::from_le_bytes(buffer);
 
-    println!("JSON Header Length: {}", json_header_length);
+    // println!("JSON Header Length: {}", json_header_length);
 
     // Skip the first 8 bytes (header)
     file.seek(SeekFrom::Start(8))?;
@@ -172,7 +178,7 @@ fn hash_safetensors_file(file_path: &str) -> Result<Value, io::Error> {
 
     // Switch the buffer to a string
     let json_string = String::from_utf8_lossy(&json_buffer);
-    println!("{}", json_string);
+    // println!("{}", json_string);
 
     let json_value: Result<Value, _> = serde_json::from_str(&json_string);
 
@@ -186,7 +192,7 @@ fn hash_safetensors_file(file_path: &str) -> Result<Value, io::Error> {
             if let Value::Object(map) = value {
          
                 for (index, (key, value)) in map.iter().enumerate() {
-                    println!("Key: {}, Value: {}", key, value);
+                    // println!("Key: {}, Value: {}", key, value);
                     if key != "__metadata__" {
                         // Get the data_offsets
                         let offsets = value.get("data_offsets").and_then(Value::as_array).unwrap();
@@ -205,7 +211,7 @@ fn hash_safetensors_file(file_path: &str) -> Result<Value, io::Error> {
                         file.read_exact(&mut tensor_buffer)?;
         
                         // Calculate SHA-256 hash of tensor data
-                        println!("{} / {} Hashing...", index+1, map.len());
+                        // println!("{} / {} Hashing...", index+1, map.len());
                         let hash = sha256_hash(&tensor_buffer);
                         // println!("SHA-256 Hash: {}", hash);
                         output_object["tensors"][key] = json!(hash);
