@@ -26,6 +26,17 @@ fn main() {
         for dir in value {
             let model_safetensors = get_model_safetensor_files(&dir);
             println!("{:?}", model_safetensors);
+            for safetensors_file_path in model_safetensors {
+                let hashed_model_result = hash_safetensors_file(&safetensors_file_path.to_string_lossy().into_owned());
+                match hashed_model_result {
+                    Ok(value) => {
+                        println!("{}", value);
+                    }
+                    Err(e) => {
+                        eprintln!("{}", e);
+                    }
+                }
+            }
         }
     }
 }
