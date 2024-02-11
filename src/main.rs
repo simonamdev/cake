@@ -8,6 +8,8 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, value, Error, Map, Value};
 use sha2::{Sha256, Digest};
 
+use rayon::prelude::*;
+
 fn main() {
     // let file_path = "/home/simon/Downloads/models/mistral-7B-v0.1/model-00001-of-00002.safetensors";
     // let hashed_model_result = hash_safetensors_file(file_path);
@@ -22,8 +24,10 @@ fn main() {
 
     let root_models_dir = "/media/simon/models3/results";
     let model_directories_by_account = get_models_by_account(root_models_dir);
+
     for (model_account, model_dirs) in model_directories_by_account {
         println!("{}, {:?}", model_account, model_dirs);
+
         for model_name_dir in model_dirs {
             let model_safetensors = get_model_safetensor_files(&model_name_dir);
             let model_name = model_name_dir.split("/").last().unwrap();
@@ -189,7 +193,7 @@ fn hash_safetensors_file(file_path: &str) -> Result<Value, io::Error> {
                         let offset_start = offsets[0].as_u64().unwrap();
                         let offset_end = offsets[1].as_u64().unwrap();
                         let offset_diff = offset_end - offset_start;
-                        println!("Offset Difference: {:?}", offset_diff);
+                        // println!("Offset Difference: {:?}", offset_diff);
         
                         // println!("Seeking to data");
                         // Seek to the start position of the tensor data
@@ -203,7 +207,7 @@ fn hash_safetensors_file(file_path: &str) -> Result<Value, io::Error> {
                         // Calculate SHA-256 hash of tensor data
                         println!("{} / {} Hashing...", index+1, map.len());
                         let hash = sha256_hash(&tensor_buffer);
-                        println!("SHA-256 Hash: {}", hash);
+                        // println!("SHA-256 Hash: {}", hash);
                         output_object["tensors"][key] = json!(hash);
                     }
                 }
