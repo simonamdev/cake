@@ -1,21 +1,92 @@
-use std::fs::File;
+use std::collections::HashMap;
+use std::fs::{self, File};
 use std::io::{self, BufReader, ErrorKind, Read, Seek, SeekFrom};
 use std::convert::TryInto;
+use std::path::{Path, PathBuf};
 
 use serde_json::{json, value, Error, Value};
 use sha2::{Sha256, Digest};
 
 fn main() {
-    let file_path = "/home/simon/Downloads/models/mistral-7B-v0.1/model-00001-of-00002.safetensors";
-    let hashed_model_result = hash_safetensors_file(file_path);
-    match hashed_model_result {
-        Ok(value) => {
-            println!("{}", value);
-        }
-        Err(e) => {
-            eprintln!("{}", e);
+    // let file_path = "/home/simon/Downloads/models/mistral-7B-v0.1/model-00001-of-00002.safetensors";
+    // let hashed_model_result = hash_safetensors_file(file_path);
+    // match hashed_model_result {
+    //     Ok(value) => {
+    //         println!("{}", value);
+    //     }
+    //     Err(e) => {
+    //         eprintln!("{}", e);
+    //     }
+    // }
+
+    let root_models_dir = "/media/simon/models/results";
+    let model_directories = get_models_by_account(root_models_dir);
+    for (key, value) in model_directories {
+        println!("{}, {:?}", key, value);
+        for dir in value {
+            let model_safetensors = get_model_safetensor_files(&dir);
+            println!("{:?}", model_safetensors);
         }
     }
+}
+
+fn get_model_safetensor_files(directory: &str) -> Vec<PathBuf> {
+    let mut safetensor_files: Vec<PathBuf> = Vec::new();
+    if let Ok(entries) = fs::read_dir(directory) {
+        for entry in entries {
+            if let Ok(entry) = entry {
+                let file_path = entry.path();
+
+                if let Some(extension) = file_path.extension() {
+                    if extension == "safetensors" {
+                        safetensor_files.push(file_path);
+                    }
+                }
+            }
+        }
+    }
+
+    return safetensor_files
+}
+
+fn get_models_by_account(root_models_directory: &str) -> HashMap<String, Vec<String>> {
+    let mut models_by_account_map: HashMap<String, Vec<String>> = HashMap::new();
+
+    // First set of directories is the HF account
+    let owners = get_directories(root_models_directory);
+
+    owners.into_iter().for_each(|owner| {
+        let owner_clone = owner.clone();
+        let mut model_dir = PathBuf::from(root_models_directory);
+        model_dir.push(owner);
+        let mut models = get_directories(&model_dir.to_string_lossy().into_owned());
+        let entry = models_by_account_map.entry(owner_clone).or_insert_with(Vec::new);
+        entry.append(&mut models);
+    });
+
+    models_by_account_map
+}
+
+fn get_directories(directory: &str) -> Vec<String> {
+    let mut model_directories: Vec<String> = Vec::new();
+
+    if let Ok(entries) = fs::read_dir(directory) {
+        for entry in entries {
+            if let Ok(entry) = entry {
+                let file_path = entry.path();
+
+                if file_path.is_dir() {
+                    // Get the full path
+                    println!("{}", file_path.display());
+                    if let Some(folder_name) = file_path.file_name() {
+                        model_directories.push(file_path.to_string_lossy().into_owned());
+                    }
+                }
+            }
+        }
+    }
+
+    return model_directories
 }
 
 fn hash_safetensors_file(file_path: &str) -> Result<Value, io::Error> {
