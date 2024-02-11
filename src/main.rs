@@ -2,17 +2,23 @@ use std::fs::File;
 use std::io::{self, BufReader, ErrorKind, Read, Seek, SeekFrom};
 use std::convert::TryInto;
 
-use serde_json::Value;
+use serde_json::{json, value, Error, Value};
 use sha2::{Sha256, Digest};
 
 fn main() {
     let file_path = "/home/simon/Downloads/models/mistral-7B-v0.1/model-00001-of-00002.safetensors";
-    if let Err(err) = hash_safetensors_file(file_path) {
-        eprintln!("Error: {}", err);
+    let hashed_model_result = hash_safetensors_file(file_path);
+    match hashed_model_result {
+        Ok(value) => {
+            println!("{}", value);
+        }
+        Err(e) => {
+            eprintln!("{}", e);
+        }
     }
 }
 
-fn hash_safetensors_file(file_path: &str) -> io::Result<()> {
+fn hash_safetensors_file(file_path: &str) -> Result<Value, io::Error> {
     let mut file = BufReader::new(File::open(file_path)?);
 
     // Read the JSON header length
@@ -35,10 +41,16 @@ fn hash_safetensors_file(file_path: &str) -> io::Result<()> {
 
     let json_value: Result<Value, _> = serde_json::from_str(&json_string);
 
+    let mut output_object = json!({
+        "file_path": file_path,
+        "tensors": {}
+    });
+
     match json_value {
         Ok(value) => {
             if let Value::Object(map) = value {
-                for (key, value) in map.iter() {
+         
+                for (index, (key, value)) in map.iter().enumerate() {
                     println!("Key: {}, Value: {}", key, value);
                     if key != "__metadata__" {
                         // Get the data_offsets
@@ -58,9 +70,10 @@ fn hash_safetensors_file(file_path: &str) -> io::Result<()> {
                         file.read_exact(&mut tensor_buffer)?;
         
                         // Calculate SHA-256 hash of tensor data
-                        println!("Hashing...");
+                        println!("{} / {} Hashing...", index, map.len());
                         let hash = sha256_hash(&tensor_buffer);
                         println!("SHA-256 Hash: {}", hash);
+                        output_object["layers"][key] = json!(hash);
                     }
                 }
             }
@@ -68,7 +81,7 @@ fn hash_safetensors_file(file_path: &str) -> io::Result<()> {
         Err(e) => eprintln!("Error deserailizing JSON: {}", e)
     }
 
-    Ok(())
+    Ok(output_object)
 }
 
 fn sha256_hash(bytes: &[u8]) -> String {
