@@ -26,17 +26,27 @@ fn main() {
     let root_models_dir = "/media/simon/models/results";
     let model_directories_by_account = get_models_by_account(root_models_dir);
 
-    let account_count = model_directories_by_account.keys().len();
-    println!("{} Accounts found...", account_count);
+    let model_count: usize = model_directories_by_account.values()
+        .flat_map(|vec| vec.iter())
+        .map(|string| string.len())
+        .sum();
+    println!("{} Models found...", model_count);
     
-    let bar = ProgressBar::new(account_count.try_into().unwrap());
+    let bar = ProgressBar::new(model_count.try_into().unwrap());
+    bar.set_style(
+        ProgressStyle::default_bar()
+            .template("[{elapsed_precise}] {bar:40.cyan/blue} {percent}% {msg}")
+            .unwrap()
+            .progress_chars("##-"),
+    );
     for (model_account, model_dirs) in model_directories_by_account {
-        bar.inc(1);
         // println!("{}/{} {}, {:?}", i, account_count, model_account, model_dirs);
 
         for model_name_dir in model_dirs {
             let model_safetensors = get_model_safetensor_files(&model_name_dir);
             let model_name = model_name_dir.split("/").last().unwrap();
+            bar.set_message(format!("{}/{}", model_account, model_name));
+            bar.inc(1);
 
             let target_dir_and_path = get_hashes_file_dir_and_path(&model_account, model_name);
             // If the target file already exists, then skip rehashing
@@ -49,7 +59,7 @@ fn main() {
             }
 
             let mut hashed_model_safetensors: Vec<Value> = Vec::new();
-            println!("{:?}", model_safetensors);
+            // println!("{:?}", model_safetensors);
             for safetensors_file_path in model_safetensors {
                 let hashed_model_result = hash_safetensors_file(&safetensors_file_path.to_string_lossy().into_owned());
                 match hashed_model_result {
@@ -80,7 +90,7 @@ fn get_hashes_file_dir_and_path(model_account: &str, model_name: &str) -> (Strin
 }
 
 fn write_json_to_file(data: Value, file_path: String) -> io::Result<()> {
-    println!("Writing to: {:?}", file_path);
+    // println!("Writing to: {:?}", file_path);
     let json_string = serde_json::to_string_pretty(&data)?;
     let mut file = File::create(file_path)?;
     file.write_all(json_string.as_bytes())?;
@@ -216,13 +226,14 @@ fn hash_safetensors_file(file_path: &str) -> Result<Value, io::Error> {
                     .par_iter()
                     .map(|(key, value)| {
                         progress_bar.inc(1);
+                        progress_bar.set_message(format!("{}: {}", file_path.to_string(), key));
                         let hashed_tensor_results = hash_tensor(file_path, key, value);
 
                         hashed_tensor_results
                     })
                     .collect();
                 
-                progress_bar.finish();
+                progress_bar.finish_and_clear();
 
                 for hashed_tensor in hashed_tensors {
                     let tensor_name = hashed_tensor["tensor"].as_str().unwrap().to_string();
