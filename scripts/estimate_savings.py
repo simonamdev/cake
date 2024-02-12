@@ -9,28 +9,28 @@ def read_json(file_path):
 def calculate_byte_content(result_file_paths):
     saved_byte_content = 0
     total_byte_content = 0
-    tracked_layers = set()
+    tracked_layer_hashes = set()
 
     for file_path in result_file_paths:
         data = read_json(file_path)
         tensors = data.get('tensors', {})
         for tensor_info in tensors.values():
-            layer_name = tensor_info['tensor']
+            layer_hash = tensor_info['hash']
             byte_count = tensor_info['byte_count']
 
             total_byte_content += byte_count
 
-            if layer_name in tracked_layers:
+            if layer_hash in tracked_layer_hashes:
                 saved_byte_content += byte_count
 
-            tracked_layers.add(layer_name)
+            tracked_layer_hashes.add(layer_hash)
                 
 
     num_files = len(result_file_paths)
 
     percent_saved = (saved_byte_content / total_byte_content) * 100 if total_byte_content != 0 else 0
 
-    return total_byte_content, num_files, saved_byte_content, 100-percent_saved
+    return total_byte_content, num_files, saved_byte_content, percent_saved
 
 def bytes_to_megabytes(bytes_value):
     return bytes_value / (1024 * 1024)
