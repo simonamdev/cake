@@ -62,7 +62,7 @@ def print_top_n(dictionary, n, layer_sizes):
     for hash, occurrences in sorted_items:
         total_size += layer_sizes[hash] * occurrences / 1024 / 1024
         if occurrences > 1:
-            total_savings_in_mb += layer_sizes[hash] * occurrences / 1024 / 1024
+            total_savings_in_mb += layer_sizes[hash] * (occurrences-1) / 1024 / 1024
     top_n = sorted_items[:n]
     for hash, occurrences in top_n:
         savings_in_mb = layer_sizes[hash] * occurrences / 1024 / 1024
