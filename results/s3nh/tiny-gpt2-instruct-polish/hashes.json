@@ -1,0 +1,39 @@
+{
+  "file_paths": [
+    "/media/simon/models3/results/s3nh/tiny-gpt2-instruct-polish/model.safetensors"
+  ],
+  "tensors": {
+    "transformer.h.0.attn.bias": "95a4d86663cd6a83808acc1518943204d0b8def660d7b3ec7b6ecb17542a1339",
+    "transformer.h.0.attn.c_attn.bias": "14d9f82b050a4c312700286ec0d2928aaed638b80f4467056361a9c204293e1a",
+    "transformer.h.0.attn.c_attn.weight": "1e52da6b5bf91da2e4e92a4482c299a2b5f57118c21318448d9217f13f75203f",
+    "transformer.h.0.attn.c_proj.bias": "043a718774c572bd8a25adbeb1bfcd5c0256ae11cecf9f9c3f925d0e52beaf89",
+    "transformer.h.0.attn.c_proj.weight": "cdf69b25a417e25753dc086819d2cdfd3939f7d0e175136812e936284bebb4a4",
+    "transformer.h.0.attn.masked_bias": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "transformer.h.0.ln_1.bias": "cfae0d4248f7142f7b17f826cd7a519280e312577690e957830d23dcf35a3fff",
+    "transformer.h.0.ln_1.weight": "65c74c15a686187bb6bbf9958f494fc6b80068034a659a9ad44991b08c58f2d2",
+    "transformer.h.0.ln_2.bias": "e7ac0786668e0ff0f02b62bd04f45ff636fd82db63b1104601c975dc005f3a67",
+    "transformer.h.0.ln_2.weight": "d03502c43d74a30b936740a9517dc4ea2b2ad7168caa0a774cefe793ce0b33e7",
+    "transformer.h.0.mlp.c_fc.bias": "13f68138a0c8a7b8971aeff0e6c392780509f6f7b5def60ee009388f060cd0aa",
+    "transformer.h.0.mlp.c_fc.weight": "026492823842ec6cb38885f6307b6e01425ed3dc1b9c2fc58282dcb2e47d3c25",
+    "transformer.h.0.mlp.c_proj.bias": "aaa9402664f1a41f40ebbc52c9993eb66aeb366602958fdfaa283b71e64db123",
+    "transformer.h.0.mlp.c_proj.weight": "53de0083e6444e3a0acb2c993017a6900c744dfe598dc6ac9eb184680e45eeb3",
+    "transformer.h.1.attn.bias": "f024b1ee6807b9409a477e92bc274c8fcf56ba7da9fb65c284b3a023f64234b3",
+    "transformer.h.1.attn.c_attn.bias": "101519fefbc9109945c4bcb484e3abeb6946eae88c2c40f9c118cdc88f4e00c6",
+    "transformer.h.1.attn.c_attn.weight": "de8bbc1ac02abfd2cf7857ad001882c2bcdfe68e2fa45ebdc147aec2d48c3303",
+    "transformer.h.1.attn.c_proj.bias": "d2e2adf7177b7a8afddbc12d1634cf23ea1a71020f6a1308070a16400fb68fde",
+    "transformer.h.1.attn.c_proj.weight": "666f8ee2fc7cbfaa37495f78c7630b5e7685372d8b70d9cd46c92b0e63a690b6",
+    "transformer.h.1.attn.masked_bias": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "transformer.h.1.ln_1.bias": "62c66a7a5dd70c3146618063c344e531e6d4b59e379808443ce962b3abd63c5a",
+    "transformer.h.1.ln_1.weight": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+    "transformer.h.1.ln_2.bias": "8254c329a92850f6d539dd376f4816ee2764517da5e0235514af433164480d7a",
+    "transformer.h.1.ln_2.weight": "8a331fdde7032f33a71e1b2e257d80166e348e00fcb17914f48bdb57a1c63007",
+    "transformer.h.1.mlp.c_fc.bias": "8b8976fc3bcd1f1e41989f66a9caf9a97cbdac1fd98cc4b211c2664a8eafd9e6",
+    "transformer.h.1.mlp.c_fc.weight": "972a8f4798d5d0b906e591c4c407e5dce738d600c1b005a3bc1e7521298cebe2",
+    "transformer.h.1.mlp.c_proj.bias": "245843abef9e72e7efac30138a994bf6301e7e1d7d7042a33d42e863d2638811",
+    "transformer.h.1.mlp.c_proj.weight": "851eee469a9b5ab80ca69fd1697ccf109483132c8dd63c15d4eb946157a16e0d",
+    "transformer.ln_f.bias": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35",
+    "transformer.ln_f.weight": "3f79bb7b435b05321651daefd374cdc681dc06faa65e374e38337b88ca046dea",
+    "transformer.wpe.weight": "0978cc177820ad312cdf7cbd346ba63ba822ab24af15e90cf873cc30a9476498",
+    "transformer.wte.weight": "3d578f09e9179185d87e7642c45adb4df310864cf5330bd9ee7cd6b31fe92d8b"
+  }
+}
