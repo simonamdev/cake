@@ -23,13 +23,13 @@ fn main() {
     //     }
     // }
 
-    let root_models_dir = "/media/simon/models3/results";
+    let root_models_dir = "/media/simon/models/results";
     let model_directories_by_account = get_models_by_account(root_models_dir);
 
     let account_count = model_directories_by_account.keys().len();
+    println!("{} Accounts found...", account_count);
     
     let bar = ProgressBar::new(account_count.try_into().unwrap());
-
     for (model_account, model_dirs) in model_directories_by_account {
         bar.inc(1);
         // println!("{}/{} {}, {:?}", i, account_count, model_account, model_dirs);
@@ -190,39 +190,55 @@ fn hash_safetensors_file(file_path: &str) -> Result<Value, io::Error> {
     match json_value {
         Ok(value) => {
             if let Value::Object(map) = value {
+                
          
                 for (index, (key, value)) in map.iter().enumerate() {
                     // println!("Key: {}, Value: {}", key, value);
                     if key != "__metadata__" {
-                        // Get the data_offsets
-                        let offsets = value.get("data_offsets").and_then(Value::as_array).unwrap();
-                        let offset_start = offsets[0].as_u64().unwrap();
-                        let offset_end = offsets[1].as_u64().unwrap();
-                        let offset_diff = offset_end - offset_start;
-                        // println!("Offset Difference: {:?}", offset_diff);
-        
-                        // println!("Seeking to data");
-                        // Seek to the start position of the tensor data
-                        file.seek(SeekFrom::Start(offset_start))?;
-        
-                        // Read tensor data into buffer
-                        // println!("Reading into buffer");
-                        let mut tensor_buffer = vec![0; (offset_diff / 8).try_into().unwrap()];
-                        file.read_exact(&mut tensor_buffer)?;
-        
-                        // Calculate SHA-256 hash of tensor data
-                        // println!("{} / {} Hashing...", index+1, map.len());
-                        let hash = sha256_hash(&tensor_buffer);
-                        // println!("SHA-256 Hash: {}", hash);
-                        output_object["tensors"][key] = json!(hash);
+                        let hashed_tensor_results = hash_tensor(file_path, key, value);
+
+                        output_object["tensors"][key] = hashed_tensor_results;
                     }
                 }
-            }
+        
         }
         Err(e) => eprintln!("Error deserailizing JSON: {}", e)
     }
 
     Ok(output_object)
+}
+
+fn hash_tensor(file_path: &str, tensor_name: &str, tensor_metadata: &Value) -> Value {
+    // Re-read the file separately so that we can process each tensor separately
+    let mut tensor_file = BufReader::new(File::open(file_path).unwrap());
+
+    // Get the data_offsets
+    let offsets = tensor_metadata.get("data_offsets").and_then(Value::as_array).unwrap();
+    let offset_start = offsets[0].as_u64().unwrap();
+    let offset_end = offsets[1].as_u64().unwrap();
+    let offset_diff = offset_end - offset_start;
+    // println!("Offset Difference: {:?}", offset_diff);
+
+    // println!("Seeking to data");
+    // Seek to the start position of the tensor data
+    tensor_file.seek(SeekFrom::Start(offset_start)).unwrap();
+
+    // Read tensor data into buffer
+    // println!("Reading into buffer");
+    let mut tensor_buffer = vec![0; (offset_diff / 8).try_into().unwrap()];
+    tensor_file.read_exact(&mut tensor_buffer).unwrap();
+
+    // Calculate SHA-256 hash of tensor data
+    // println!("{} / {} Hashing...", index+1, map.len());
+    let hash = sha256_hash(&tensor_buffer);
+    // println!("SHA-256 Hash: {}", hash);
+    let tensor_results = json!({
+        "hash": hash,
+        "byte_count": offset_diff / 8,
+        "offset_diff": offset_diff
+    });
+
+    tensor_results
 }
 
 fn sha256_hash(bytes: &[u8]) -> String {
