@@ -190,17 +190,34 @@ fn hash_safetensors_file(file_path: &str) -> Result<Value, io::Error> {
     match json_value {
         Ok(value) => {
             if let Value::Object(map) = value {
-                
-         
-                for (index, (key, value)) in map.iter().enumerate() {
-                    // println!("Key: {}, Value: {}", key, value);
-                    if key != "__metadata__" {
+
+                let progress_bar = ProgressBar::new(map.len() as u64);
+                progress_bar.set_style(
+                    ProgressStyle::default_bar()
+                        .template("[{elapsed_precise}] {bar:40.cyan/blue} {pos}/{len} {msg}").unwrap()
+                        .progress_chars("##-"),
+                );
+
+                let hashed_tensors: Vec<Value> = map
+                    .iter()
+                    .filter(|(key, _)| key != &"__metadata__")
+                    .collect::<Vec<_>>()
+                    .par_iter()
+                    .map(|(key, value)| {
+                        progress_bar.inc(1);
                         let hashed_tensor_results = hash_tensor(file_path, key, value);
 
-                        output_object["tensors"][key] = hashed_tensor_results;
-                    }
+                        hashed_tensor_results
+                    })
+                    .collect();
+                
+                progress_bar.finish();
+
+                for hashed_tensor in hashed_tensors {
+                    let tensor_name = hashed_tensor["tensor"].as_str().unwrap().to_string();
+                    output_object["tensors"][tensor_name] = hashed_tensor;
                 }
-        
+            }
         }
         Err(e) => eprintln!("Error deserailizing JSON: {}", e)
     }
@@ -233,6 +250,7 @@ fn hash_tensor(file_path: &str, tensor_name: &str, tensor_metadata: &Value) -> V
     let hash = sha256_hash(&tensor_buffer);
     // println!("SHA-256 Hash: {}", hash);
     let tensor_results = json!({
+        "tensor": tensor_name,
         "hash": hash,
         "byte_count": offset_diff / 8,
         "offset_diff": offset_diff
