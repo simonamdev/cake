@@ -37,6 +37,17 @@ fn main() {
         for model_name_dir in model_dirs {
             let model_safetensors = get_model_safetensor_files(&model_name_dir);
             let model_name = model_name_dir.split("/").last().unwrap();
+
+            let target_dir_and_path = get_hashes_file_dir_and_path(&model_account, model_name);
+            // If the target file already exists, then skip rehashing
+            // TODO: Override flag to force recreating it?
+            let target_dir_and_path_clone = target_dir_and_path.clone();
+            let file_already_exists = fs::metadata(target_dir_and_path.1).is_ok();
+
+            if file_already_exists {
+                continue
+            }
+
             let mut hashed_model_safetensors: Vec<Value> = Vec::new();
             println!("{:?}", model_safetensors);
             for safetensors_file_path in model_safetensors {
@@ -53,19 +64,19 @@ fn main() {
             }
             let final_output_json = merge_hash_results(hashed_model_safetensors);
             // println!("{:?}", final_output_json);
-            // Form the file path for the results
-            let model_account_clone = model_account.clone();
-            // Forgive me for this but pathbuf wasn't funcitoning as expected
-            let abs_dir: String =  env::current_dir().unwrap().to_string_lossy().into_owned().clone() + &"/results/".to_owned() + &model_account_clone.clone() + "/" + &model_name;
-            // Build the dir in case it doesnt exist
-            let abs_dir_clone: String = abs_dir.clone();
-            fs::create_dir_all(abs_dir).unwrap();
-            let target_file_path = abs_dir_clone.to_owned() + "/hashes.json";
-
-            write_json_to_file(final_output_json, target_file_path).unwrap();
+            
+            fs::create_dir_all(target_dir_and_path.0).unwrap();
+            write_json_to_file(final_output_json, target_dir_and_path_clone.1).unwrap();
         }
     }
     bar.finish();
+}
+
+fn get_hashes_file_dir_and_path(model_account: &str, model_name: &str) -> (String, String) {
+    let abs_dir: String =  env::current_dir().unwrap().to_string_lossy().into_owned().clone() + &"/results/".to_owned() + &model_account + "/" + &model_name;
+    let target_file_path = abs_dir.to_owned() + "/hashes.json";
+
+    (abs_dir, target_file_path)
 }
 
 fn write_json_to_file(data: Value, file_path: String) -> io::Result<()> {
