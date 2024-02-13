@@ -3,6 +3,8 @@ from huggingface_hub import HfApi, ModelFilter, snapshot_download, utils
 
 api = HfApi()
 
+os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
+
 download_folder = '/media/simon/models2'
 model_list_file_path = './models_downloaded.txt'
 
