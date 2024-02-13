@@ -1,5 +1,6 @@
 # cake
-An efficient way to download and store Machine Learning models.
+
+An experimental, more efficient way to download and store Machine Learning models.
 
 # Proposal
 
@@ -23,3 +24,7 @@ Given a model name (example: `Mistral-7B-OpenOrca`):
 # Potential issues
 
 1. As marked with [1], the "remote storage" is not figured out yet. Docker has the idea of a registry that could also work here, however if we are able to read and pull only **parts** of `safetensors` files from an HTTP endpoint (if it allows us to request the file at an offset for a specific length) then it is possible we can get away with skipping the complexity of setting up a registry too.
+
+It looks like snapshot_download from huggingface_hub only allows retrieval of the entire file.
+
+2. It may be possible, as a future enhancement, to do a similarity comparison of layers instead of a full hash. Imagine the case where a single bit is flipped through fine-tuning - the hash will be completely different however the final result of using that layer may be acceptable performance wise.
