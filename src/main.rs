@@ -1,3 +1,4 @@
+use core::panic;
 use std::collections::{HashMap, HashSet};
 use std::env;
 use std::fs::{self, File};
@@ -23,7 +24,7 @@ fn main() {
     //     }
     // }
 
-    let root_models_dir = "/media/simon/models/results";
+    let root_models_dir = "/media/simon/models2/results";
     let model_directories_by_account = get_models_by_account(root_models_dir);
 
     let model_count: usize = model_directories_by_account.values()
@@ -68,7 +69,7 @@ fn main() {
                         hashed_model_safetensors.push(value);
                     }
                     Err(e) => {
-                        eprintln!("{}", e);
+                        panic!("{}", format!("{}", e));
                     }
                 }
             }
@@ -90,7 +91,7 @@ fn get_hashes_file_dir_and_path(model_account: &str, model_name: &str) -> (Strin
 }
 
 fn write_json_to_file(data: Value, file_path: String) -> io::Result<()> {
-    // println!("Writing to: {:?}", file_path);
+    println!("Writing to: {:?}", file_path);
     let json_string = serde_json::to_string_pretty(&data)?;
     let mut file = File::create(file_path)?;
     file.write_all(json_string.as_bytes())?;
@@ -241,7 +242,7 @@ fn hash_safetensors_file(file_path: &str) -> Result<Value, io::Error> {
                 }
             }
         }
-        Err(e) => eprintln!("Error deserailizing JSON: {}", e)
+        Err(e) => panic!("{}", format!("{}", e))
     }
 
     Ok(output_object)
