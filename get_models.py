@@ -3,7 +3,7 @@ from huggingface_hub import HfApi, ModelFilter, snapshot_download, utils
 
 api = HfApi()
 
-download_folder = '/media/simon/models3'
+download_folder = '/media/simon/models2'
 model_list_file_path = './models_downloaded.txt'
 
 if not os.path.isfile(model_list_file_path):
