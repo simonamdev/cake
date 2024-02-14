@@ -59,7 +59,8 @@ def main():
         similar_perc = round(v, 2)
         if similar_perc >= threshold:
             count_over_threshold += 1
-    print(f'{count_over_threshold} models out of {len(result_file_paths)} are over {threshold}% similar')
+    perc_models_over_threshold = round(count_over_threshold / len(result_file_paths) * 100.0, 2)
+    print(f'{count_over_threshold} models out of {len(result_file_paths)} ({perc_models_over_threshold}%) are over {threshold}% similar')
 
 if __name__ == "__main__":
     main()
