@@ -27,13 +27,10 @@ fn main() {
     let root_models_dir = "/media/simon/models2/results";
     let model_directories_by_account = get_models_by_account(root_models_dir);
 
-    let model_count: usize = model_directories_by_account.values()
-        .flat_map(|vec| vec.iter())
-        .map(|string| string.len())
-        .sum();
-    println!("{} Models found...", model_count);
+    let account_count = model_directories_by_account.len();
+    println!("{} Accounts found...", account_count);
     
-    let bar = ProgressBar::new(model_count.try_into().unwrap());
+    let bar = ProgressBar::new(account_count.try_into().unwrap());
     bar.set_style(
         ProgressStyle::default_bar()
             .template("[{elapsed_precise}] {bar:40.cyan/blue} {percent}% {msg}")
@@ -42,12 +39,12 @@ fn main() {
     );
     for (model_account, model_dirs) in model_directories_by_account {
         // println!("{}/{} {}, {:?}", i, account_count, model_account, model_dirs);
+        bar.inc(1);
 
         for model_name_dir in model_dirs {
             let model_safetensors = get_model_safetensor_files(&model_name_dir);
             let model_name = model_name_dir.split("/").last().unwrap();
             bar.set_message(format!("{}/{}", model_account, model_name));
-            bar.inc(1);
 
             let target_dir_and_path = get_hashes_file_dir_and_path(&model_account, model_name);
             // If the target file already exists, then skip rehashing
