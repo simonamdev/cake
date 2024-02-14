@@ -27,4 +27,6 @@ Given a model name (example: `Mistral-7B-OpenOrca`):
 
 It looks like snapshot_download from huggingface_hub only allows retrieval of the entire file.
 
+We may be able to however use the Range header, but it needs further testing. Example curl: `curl --range 262175808-379616319 -L https://huggingface.co/KoboldAI/fairseq-dense-1.3B/resolve/main/model.safetensors\?download\=true -o model.safetensors`
+
 2. It may be possible, as a future enhancement, to do a similarity comparison of layers instead of a full hash. Imagine the case where a single bit is flipped through fine-tuning - the hash will be completely different however the final result of using that layer may be acceptable performance wise.

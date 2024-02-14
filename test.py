@@ -33,6 +33,8 @@ def hash_safetensors_file(file_path: str) -> dict:
         json_header = json.loads(
             json_header_bytes
         )
+        print(json_header)
+        print(header_length_bytes)
         tensor_names = [
             t for t in list(json_header.keys()) if not t == '__metadata__' # skip the metadata
         ]
