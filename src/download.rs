@@ -10,36 +10,20 @@ pub fn download_safetensors_header(url: &str) -> (serde_json::Value) {
 
     println!("JSON header is {json_header_length} bytes long");
 
-    let header_bytes: Vec<u8> = download_part_of_file(url, 8 - 1, json_header_length.try_into().unwrap()).unwrap();
+    let header_bytes: Vec<u8> = download_part_of_file(url, 8, json_header_length.try_into().unwrap()).unwrap();
     let json_string = String::from_utf8_lossy(&header_bytes);
     println!("{:}", json_string);
     println!("{}", json_header_length);
     println!("{}", json_string.len());
     println!("{}", header_bytes.len());
-    let metadata_json: Result<Value, serde_json::Error> = serde_json::from_str(&json_string);
+    let metadata_json: serde_json::Value = serde_json::from_str(&json_string).unwrap();
 
-    match metadata_json {
-        Ok(v) => {
-            return json!({});
-        }
-        Err(e) => {
-            eprintln!("{}", e);
-
-            return json!({});
-        }
-    }
-
-    // metadata_json
+    metadata_json
 }
 
-fn get_u64_from_u8_vec(mut bytes: Vec<u8>) -> u64 {
-    let mut result: u64 = 0;
-    // Rust does little endian by default, which means LSB comes first, but these bytes are big endian
-    bytes.reverse();
-    for &byte in &bytes {
-        result = (result << 8) | u64::from(byte);
-    }
-    result
+fn get_u64_from_u8_vec(bytes: Vec<u8>) -> u64 {
+    let b: [u8; 8] = bytes.try_into().unwrap();
+    u64::from_le_bytes(b)
 }
 
 fn download_tensor(url: &str, tensor_length: usize) -> Vec<u8> {
