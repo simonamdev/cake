@@ -8,11 +8,12 @@ from tqdm import tqdm
 import hashlib
 
 
+test_file_path = '/home/simon/Downloads/models/KoboldAI-fairseq-dense-1.3B.safetensors'
 file_path_one = '/home/simon/Downloads/models/mistral-7B-v0.1/model-00001-of-00002.safetensors'
 file_path_two = '/home/simon/Downloads/models/mistral-7B-v0.1/model-00002-of-00002.safetensors'
 
-print(file_path_one)
-print(file_path_two)
+# print(file_path_one)
+# print(file_path_two)
 
 def read_bytes(f: BufferedReader, start: int, length: int) -> bytes:
     f.seek(start)
@@ -20,6 +21,7 @@ def read_bytes(f: BufferedReader, start: int, length: int) -> bytes:
     return content
     
 def hash_safetensors_file(file_path: str) -> dict:
+    print(file_path)
     output = {
         'file_path': file_path,
         'tensors': {}
@@ -28,6 +30,8 @@ def hash_safetensors_file(file_path: str) -> dict:
         # First eight bytes is the u64 number defining the amount
         # of bytes dedicated to the JSON formatted header of the file
         header = f.read(8)
+        print(header)
+        print(int.from_bytes(header, byteorder='big'))
         header_length_bytes = struct.unpack('Q', header)[0]
         json_header_bytes = f.read(header_length_bytes)
         json_header = json.loads(
@@ -65,6 +69,8 @@ def merge_results(st_one:dict, st_two:dict) -> dict:
         'tensors': tensors
     }
 
+test = hash_safetensors_file(test_file_path)
+print(test)
 one = hash_safetensors_file(file_path_one)
 print(one)
 two = hash_safetensors_file(file_path_two)

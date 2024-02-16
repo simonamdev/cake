@@ -12,7 +12,15 @@ use sha2::{Sha256, Digest};
 use rayon::prelude::*;
 use indicatif::{ProgressBar, ProgressStyle};
 
+mod download;
+
 fn main() {
+    let url = "https://huggingface.co/KoboldAI/fairseq-dense-1.3B/resolve/main/model.safetensors?download=true";
+    download::download_safetensors_header(url);
+    // process_files_locally();
+}
+
+fn process_files_locally() {
     // let file_path = "/home/simon/Downloads/models/mistral-7B-v0.1/model-00001-of-00002.safetensors";
     // let hashed_model_result = hash_safetensors_file(file_path);
     // match hashed_model_result {
