@@ -16,7 +16,8 @@ mod download;
 
 fn main() {
     let url = "https://huggingface.co/KoboldAI/fairseq-dense-1.3B/resolve/main/model.safetensors?download=true";
-    download::download_safetensors_header(url);
+    let header = download::download_safetensors_header(url);
+    println!("{}", header);
     // process_files_locally();
 }
 
