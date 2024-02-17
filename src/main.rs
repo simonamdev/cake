@@ -27,6 +27,13 @@ fn main() {
     let mut f = fs::File::open(target_file_path).unwrap();
     f.read_to_end(&mut bytes).unwrap();
     let result = SafeTensors::deserialize(&bytes).unwrap();
+    for (name, tensor) in result.tensors() {
+        if name == "model.layers.1.self_attn.k_proj.weight" {
+            let hash = sha256_hash(&tensor.data());
+            println!("{} : {}", name, hash)
+        }
+        // println!("{:?}", tensor.data())
+    }
     // process_files_locally();
 }
 

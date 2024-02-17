@@ -1,5 +1,6 @@
 use serde_json::{Value};
 use reqwest::{blocking::Client, Error};
+use sha2::{Sha256, Digest};
 use std::fs::{self, metadata, File};
 use std::io::prelude::*;
 use std::path::PathBuf;
@@ -118,7 +119,22 @@ pub fn download_full_safetensors_file(url: &str, download_directory: &str, cache
         println!("Writing {} to {}...", key, tensor_file_cache_path.display());
         file.write_all(&tensor).unwrap();
         file.flush().unwrap();
+
+        if key == "model.layers.1.self_attn.k_proj.weight" {
+            let hash = sha256_hash(&tensor);
+            println!("{} : {}", key, hash)
+        }
     }
+}
+
+fn sha256_hash(bytes: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+    let result = hasher.finalize();
+
+    let hash_hex = format!("{:x}", result);
+
+    hash_hex
 }
 
 fn file_exists(path: &PathBuf) -> bool {
