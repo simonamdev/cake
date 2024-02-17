@@ -6,6 +6,7 @@ use std::io::{self, BufReader, ErrorKind, Read, Seek, SeekFrom, Write};
 use std::convert::TryInto;
 use std::path::{Path, PathBuf};
 
+use safetensors::{SafeTensorError, SafeTensors};
 use serde_json::{json, value, Error, Map, Value};
 use sha2::{Sha256, Digest};
 
@@ -19,6 +20,13 @@ fn main() {
     let download_folder = "./download";
     let cache_folder = "./cache";
     download::download_full_safetensors_file(url, download_folder, cache_folder);
+    let target_file_path = "./test.safetensors";
+    download::combine_cached_files_to_safetensors_file(cache_folder, target_file_path);
+    // Test if it deserialises properly
+    let mut bytes = vec![];
+    let mut f = fs::File::open(target_file_path).unwrap();
+    f.read_to_end(&mut bytes).unwrap();
+    let result = SafeTensors::deserialize(&bytes).unwrap();
     // process_files_locally();
 }
 

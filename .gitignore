@@ -24,3 +24,4 @@ models_downloaded.txt
 results/
 download/
 cache/
+test.safetensors

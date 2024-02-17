@@ -1,11 +1,68 @@
-use serde_json::{json, Value};
+use serde_json::{Value};
 use reqwest::{blocking::Client, Error};
-use std::fs::{File, metadata};
+use std::fs::{self, metadata, File};
 use std::io::prelude::*;
 use std::path::PathBuf;
 
 pub fn combine_cached_files_to_safetensors_file(cache_directory: &str, target_file_path: &str) {
+    let mut header_file_path = PathBuf::new();
+    header_file_path.push(cache_directory);
+    header_file_path.push("header.json");
 
+    let mut header_file = fs::File::open(header_file_path).unwrap();
+    let mut header_bytes = Vec::new();
+    header_file.read_to_end(&mut header_bytes).unwrap();
+
+    println!("{}", header_bytes.len());
+    println!("{:}", header_bytes[0]);
+
+    let mut output_file = fs::OpenOptions::new()
+        .write(true)
+        .truncate(true)
+        .create(true)
+        .open(target_file_path).unwrap();
+    // Write the header length
+    let header_length_bytes = &header_bytes.len().to_le_bytes();
+    println!("{:?}", header_length_bytes);
+    output_file.write_all(
+        header_length_bytes
+    ).unwrap();
+    // Write the header bytes
+    output_file.write_all(
+        &header_bytes
+    ).unwrap();
+    // Iterate through the tensors and write them
+
+    let mut header: Value = serde_json::from_slice(&header_bytes).unwrap();
+    if let Some(obj) = header.as_object_mut() {
+        // Sort the JSON object by the first index of the "data_offsets" array
+        if let Some(data_offsets) = obj.get_mut("data_offsets") {
+            if let Some(data_offsets_array) = data_offsets.as_array_mut() {
+                data_offsets_array.sort_by(|a, b| {
+                    let a_first = a[0].as_i64().unwrap_or(i64::MAX);
+                    let b_first = b[0].as_i64().unwrap_or(i64::MAX);
+                    a_first.cmp(&b_first)
+                });
+            }
+        }
+
+        for (key, value) in obj {
+            println!("Key: {}, Value: {}", key, value);
+            if key == "__metadata__" {
+                continue;
+            }
+
+            let mut tensor_file_cache_path = PathBuf::new();
+            tensor_file_cache_path.push(cache_directory);
+            tensor_file_cache_path.push(key);
+            let mut tensor_file = fs::File::open(tensor_file_cache_path).unwrap();
+            let mut tensor_bytes: Vec<_> = Vec::new();
+            tensor_file.read_to_end(&mut tensor_bytes).unwrap();
+            output_file.write_all(
+                &tensor_bytes
+            ).unwrap();
+        }
+    }
 }
 
 pub fn download_full_safetensors_file(url: &str, download_directory: &str, cache_directory: &str) {
@@ -24,6 +81,7 @@ pub fn download_full_safetensors_file(url: &str, download_directory: &str, cache
     header_buf.extend(vec![b' '; extra]);
     // TAKEN DIRECTLY FROM SAFETENSORS -|
     header_file.write_all(&header_buf).unwrap();
+    header_file.flush().unwrap();
 
     // Write the header length to a file
     let mut header_length_path = PathBuf::new();
@@ -31,6 +89,7 @@ pub fn download_full_safetensors_file(url: &str, download_directory: &str, cache
     header_length_path.push("header.length");
     let mut header_length_file = File::create(header_length_path).unwrap();
     header_length_file.write_all(format!("{}", header_length).as_bytes()).unwrap();
+    header_length_file.flush().unwrap();
 
 
     for (key, value) in header.as_object().unwrap() {
@@ -39,7 +98,7 @@ pub fn download_full_safetensors_file(url: &str, download_directory: &str, cache
         }
         // Here the key is the tensor name and the value is in the format:
         // {"data_offsets":[1209081856,1217470464],"dtype":"F16","shape":[2048,2048]}
-        println!("{} {}", key, value);
+        // println!("{} {}", key, value);
         // If the file exists, skip it
         let mut tensor_file_cache_path = PathBuf::new();
         tensor_file_cache_path.push(cache_directory);
@@ -57,6 +116,7 @@ pub fn download_full_safetensors_file(url: &str, download_directory: &str, cache
         let mut file = File::create(&tensor_file_cache_path).unwrap();
         println!("Writing {} to {}...", key, tensor_file_cache_path.display());
         file.write_all(&tensor).unwrap();
+        file.flush().unwrap();
     }
 }
 
