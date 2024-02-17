@@ -17,7 +17,13 @@ pub fn download_full_safetensors_file(url: &str, download_directory: &str, cache
     header_file_path.push(cache_directory);
     header_file_path.push("header.json");
     let mut header_file = File::create(header_file_path).unwrap();
-    header_file.write_all(serde_json::to_string(&header).unwrap().as_bytes()).unwrap();
+    let mut header_buf =serde_json::to_string(&header).unwrap().into_bytes();
+    // TAKEN DIRECTLY FROM SAFETENSORS -|
+    // Force alignment to 8 bytes.
+    let extra = (8 - header_buf.len() % 8) % 8;
+    header_buf.extend(vec![b' '; extra]);
+    // TAKEN DIRECTLY FROM SAFETENSORS -|
+    header_file.write_all(&header_buf).unwrap();
 
     // Write the header length to a file
     let mut header_length_path = PathBuf::new();
