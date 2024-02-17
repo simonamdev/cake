@@ -1,7 +1,68 @@
 use serde_json::{json, Value};
 use reqwest::{blocking::Client, Error};
+use std::fs::{File, metadata};
+use std::io::prelude::*;
+use std::path::PathBuf;
 
-pub fn download_safetensors_header(url: &str) -> (serde_json::Value) {
+pub fn combine_cached_files_to_safetensors_file(cache_directory: &str, target_file_path: &str) {
+
+}
+
+pub fn download_full_safetensors_file(url: &str, download_directory: &str, cache_directory: &str) {
+    // First download the header to understand the file
+    let (header, header_length) = download_safetensors_header(url);
+
+    // Write the header to a file
+    let mut header_file_path = PathBuf::new();
+    header_file_path.push(cache_directory);
+    header_file_path.push("header.json");
+    let mut header_file = File::create(header_file_path).unwrap();
+    header_file.write_all(serde_json::to_string(&header).unwrap().as_bytes()).unwrap();
+
+    // Write the header length to a file
+    let mut header_length_path = PathBuf::new();
+    header_length_path.push(cache_directory);
+    header_length_path.push("header.length");
+    let mut header_length_file = File::create(header_length_path).unwrap();
+    header_length_file.write_all(format!("{}", header_length).as_bytes()).unwrap();
+
+
+    for (key, value) in header.as_object().unwrap() {
+        if key == "__metadata__" {
+            continue;
+        }
+        // Here the key is the tensor name and the value is in the format:
+        // {"data_offsets":[1209081856,1217470464],"dtype":"F16","shape":[2048,2048]}
+        println!("{} {}", key, value);
+        // If the file exists, skip it
+        let mut tensor_file_cache_path = PathBuf::new();
+        tensor_file_cache_path.push(cache_directory);
+        tensor_file_cache_path.push(key);
+        if file_exists(&tensor_file_cache_path) {
+            println!("{} already exists, skipping...", tensor_file_cache_path.display());
+            continue;
+        }
+        let offsets = value.get("data_offsets").and_then(Value::as_array).unwrap();
+        let offset_start = offsets[0].as_u64().unwrap();
+        let offset_end = offsets[1].as_u64().unwrap();
+        // Download the tensor
+        let tensor = download_tensor(url, offset_start, offset_end).unwrap();
+        // Write the tensor to the cache dir file
+        let mut file = File::create(&tensor_file_cache_path).unwrap();
+        println!("Writing {} to {}...", key, tensor_file_cache_path.display());
+        file.write_all(&tensor).unwrap();
+    }
+}
+
+fn file_exists(path: &PathBuf) -> bool {
+    if let Ok(metadata) = metadata(path) {
+        metadata.is_file()
+    } else {
+        false
+    }
+}
+
+pub fn download_safetensors_header(url: &str) -> (serde_json::Value, u64) {
     // Step 1: download the first 8 bytes of the file, that contains the header length as u64
 
     let header_length_bytes: Vec<u8> = download_part_of_file(url, 0, 8).unwrap();
@@ -18,7 +79,7 @@ pub fn download_safetensors_header(url: &str) -> (serde_json::Value) {
     println!("{}", header_bytes.len());
     let metadata_json: serde_json::Value = serde_json::from_str(&json_string).unwrap();
 
-    metadata_json
+    (metadata_json, json_header_length)
 }
 
 fn get_u64_from_u8_vec(bytes: Vec<u8>) -> u64 {
@@ -26,12 +87,13 @@ fn get_u64_from_u8_vec(bytes: Vec<u8>) -> u64 {
     u64::from_le_bytes(b)
 }
 
-fn download_tensor(url: &str, tensor_length: usize) -> Vec<u8> {
-    let mut tensor_buffer = vec![0; tensor_length];
+fn download_tensor(url: &str, offset_start: u64, offset_end: u64) -> Result<Vec<u8>, Error> {
+    let offset_diff = offset_end - offset_start;
+    let byte_count = offset_diff / 8;
 
-    // TODO: download the tesnor using the Range header
+    let tensor = download_part_of_file(url, offset_start, byte_count);
 
-    tensor_buffer
+    tensor
 }
 
 fn download_part_of_file(url: &str, byte_index: u64, number_of_bytes: u64) -> Result<Vec<u8>, Error> {

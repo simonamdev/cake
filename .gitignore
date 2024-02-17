@@ -22,3 +22,5 @@ Cargo.lock
 # POC scripts
 models_downloaded.txt
 results/
+download/
+cache/
