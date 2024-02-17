@@ -12,9 +12,9 @@ pub fn combine_cached_files_to_safetensors_file(cache_directory: &str, target_fi
     let mut header_file = fs::File::open(header_file_path).unwrap();
     let mut header_bytes = Vec::new();
     header_file.read_to_end(&mut header_bytes).unwrap();
+    
 
     println!("{}", header_bytes.len());
-    println!("{:}", header_bytes[0]);
 
     let mut output_file = fs::OpenOptions::new()
         .write(true)
@@ -27,6 +27,7 @@ pub fn combine_cached_files_to_safetensors_file(cache_directory: &str, target_fi
     output_file.write_all(
         header_length_bytes
     ).unwrap();
+    println!("{:?}", header_bytes.len());
     // Write the header bytes
     output_file.write_all(
         &header_bytes
@@ -155,7 +156,7 @@ fn get_u64_from_u8_vec(bytes: Vec<u8>) -> u64 {
 
 fn download_tensor(url: &str, offset_start: u64, offset_end: u64) -> Result<Vec<u8>, Error> {
     let offset_diff = offset_end - offset_start;
-    let byte_count = offset_diff / 8;
+    let byte_count = offset_diff;
 
     let tensor = download_part_of_file(url, offset_start, byte_count);
 
