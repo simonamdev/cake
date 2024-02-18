@@ -5,6 +5,8 @@ use std::fs::{self, metadata, File};
 use std::io::prelude::*;
 use std::path::PathBuf;
 
+use crate::hash;
+
 pub fn combine_cached_files_to_safetensors_file(cache_directory: &str, target_file_path: &str) {
     let mut header_file_path = PathBuf::new();
     header_file_path.push(cache_directory);
@@ -121,21 +123,12 @@ pub fn download_full_safetensors_file(url: &str, download_directory: &str, cache
         file.flush().unwrap();
 
         if key == "model.layers.1.self_attn.k_proj.weight" {
-            let hash = sha256_hash(&tensor);
+            let hash = hash::sha256_hash(&tensor);
             println!("{} : {}", key, hash)
         }
     }
 }
 
-fn sha256_hash(bytes: &[u8]) -> String {
-    let mut hasher = Sha256::new();
-    hasher.update(bytes);
-    let result = hasher.finalize();
-
-    let hash_hex = format!("{:x}", result);
-
-    hash_hex
-}
 
 fn file_exists(path: &PathBuf) -> bool {
     if let Ok(metadata) = metadata(path) {

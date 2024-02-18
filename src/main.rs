@@ -14,6 +14,7 @@ use rayon::prelude::*;
 use indicatif::{ProgressBar, ProgressStyle};
 
 mod download;
+mod hash;
 
 fn main() {
     let url = "https://huggingface.co/KoboldAI/fairseq-dense-1.3B/resolve/main/model.safetensors?download=true";
@@ -29,7 +30,7 @@ fn main() {
     let result = SafeTensors::deserialize(&bytes).unwrap();
     for (name, tensor) in result.tensors() {
         if name == "model.layers.1.self_attn.k_proj.weight" {
-            let hash = sha256_hash(&tensor.data());
+            let hash = hash::sha256_hash(&tensor.data());
             println!("{} : {}", name, hash)
         }
         // println!("{:?}", tensor.data())
@@ -292,7 +293,7 @@ fn hash_tensor(file_path: &str, tensor_name: &str, tensor_metadata: &Value) -> V
 
     // Calculate SHA-256 hash of tensor data
     // println!("{} / {} Hashing...", index+1, map.len());
-    let hash = sha256_hash(&tensor_buffer);
+    let hash = hash::sha256_hash(&tensor_buffer);
     // println!("SHA-256 Hash: {}", hash);
     let tensor_results = json!({
         "tensor": tensor_name,
@@ -302,14 +303,4 @@ fn hash_tensor(file_path: &str, tensor_name: &str, tensor_metadata: &Value) -> V
     });
 
     tensor_results
-}
-
-fn sha256_hash(bytes: &[u8]) -> String {
-    let mut hasher = Sha256::new();
-    hasher.update(bytes);
-    let result = hasher.finalize();
-
-    let hash_hex = format!("{:x}", result);
-
-    hash_hex
 }
