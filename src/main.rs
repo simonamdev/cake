@@ -42,8 +42,8 @@ fn main() {
         let hashes_file_path_clone = hashes_file_path.1.clone();
         let hashes_file_exists = fs::metadata(hashes_file_path_clone).is_ok();
         if !hashes_file_exists {
-            fs::create_dir_all(hashes_file_path.0).unwrap();
             let hashed_layers_result = download_and_hash_layers(model_id, safetensors_file_name);
+            fs::create_dir_all(hashes_file_path.0).unwrap();
             let file = File::create(hashes_file_path.1).unwrap();
             serde_json::to_writer_pretty(file, &hashed_layers_result).unwrap();
         }
