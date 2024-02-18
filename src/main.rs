@@ -92,10 +92,19 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
     // Convert the JSON object into a slice of mutable key-value pairs
     let header_entries: Vec<(&String, &Value)> = header.as_object().unwrap().iter().collect();
 
+    let bar = ProgressBar::new(header_entries.len().try_into().unwrap());
+    bar.set_style(
+        ProgressStyle::default_bar()
+            .template("[{elapsed_precise}] {bar:40.cyan/blue} {percent}% {msg}")
+            .unwrap()
+            .progress_chars("##-"),
+    );
+
     // Process the header entries in parallel
     let processed_entries: Vec<(String, Value)> = header_entries
         .par_iter()
         .filter_map(|(tensor_name, tensor_metadata)| {
+            bar.inc(1);
             if *tensor_name == "__metadata__" {
                 None
             } else {
@@ -119,11 +128,14 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
         })
         .collect();
 
+    bar.finish();
+
     // Create a new map and insert processed entries
     let mut result_obj: Map<String, Value> = Map::new();
     for (tensor_name, tensor_result) in processed_entries {
         result_obj.insert(tensor_name, tensor_result);
     }
+
 
     result_obj
 }
