@@ -89,27 +89,41 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
     let (header, _) = download::download_safetensors_header(url);
 
     // Iterate over each tensor, download it and hash the layer
-    for (tensor_name, tensor_metadata) in header.as_object().unwrap() {
-        if tensor_name == "__metadata__" {
-            continue;
+        // Convert the JSON object into a slice of mutable key-value pairs
+        let header_entries: Vec<(&String, &Value)> = header.as_object().unwrap().iter().collect();
+
+        // Process the header entries in parallel
+        let processed_entries: Vec<(String, Value)> = header_entries
+            .par_iter()
+            .filter_map(|(tensor_name, tensor_metadata)| {
+                if *tensor_name == "__metadata__" {
+                    None
+                } else {
+                    // TODO: dedupe this
+                    let offsets = tensor_metadata.get("data_offsets").and_then(Value::as_array)?;
+                    let offset_start = offsets[0].as_u64()?;
+                    let offset_end = offsets[1].as_u64()?;
+                    // Download the tensor
+                    println!("{}: Downloading {}...", model_id, tensor_name);
+                    let tensor = download::download_tensor(url, offset_start, offset_end).unwrap(); // Handle unwrap better
+                    // Hash the tensor
+                    println!("Hashing {}...", tensor_name);
+                    let hash = hash::sha256_hash(&tensor);
+                    // Put that in the results
+                    let tensor_result = json!({
+                        "data_offsets": offsets,
+                        "hash": hash
+                    });
+                    Some((tensor_name.to_string(), tensor_result))
+                }
+            })
+            .collect();
+    
+        // Create a new map and insert processed entries
+        let mut result_obj: Map<String, Value> = Map::new();
+        for (tensor_name, tensor_result) in processed_entries {
+            result_obj.insert(tensor_name, tensor_result);
         }
-        // TODO: dedupe this
-        let offsets = tensor_metadata.get("data_offsets").and_then(Value::as_array).unwrap();
-        let offset_start = offsets[0].as_u64().unwrap();
-        let offset_end = offsets[1].as_u64().unwrap();
-        // Download the tensor
-        println!("Downloading {}...", tensor_name);
-        let tensor = download::download_tensor(url, offset_start, offset_end).unwrap();
-        // Hash the tensor
-        println!("Hashing {}...", tensor_name);
-        let hash = hash::sha256_hash(&tensor);
-        // Put that in the results
-        let tensor_result = json!({
-            "data_offsets": offsets,
-            "hash": hash
-        });
-        result_obj.insert(tensor_name.to_string(), tensor_result);
-    }
 
     result_obj
 }
