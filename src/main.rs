@@ -17,9 +17,43 @@ mod download;
 mod hash;
 
 fn main() {
+    // Get the model ids and file names from the JSON file
+    let mut file = File::open("safetensor-models-text-gen.json").unwrap();
+    let mut models_json_str = String::new();
+    file.read_to_string(&mut models_json_str).unwrap();
+
+    let json: Value = serde_json::from_str(&models_json_str).unwrap();
+    let mut i = 0;
+    for (model_id, file_names) in json.as_object().unwrap() {
+        i += 1;
+        println!("{}/{}: {}", i, json.as_object().unwrap().len(), model_id);
+        // For now, handle only models with a single file, for simplicity
+        // TODO: Handle multi file models!
+        if file_names.as_array().unwrap().len() > 1 {
+            continue
+        }
+        let safetensors_file_name = file_names.as_array().unwrap().get(0).unwrap().as_str().unwrap();
+        let model_parts: Vec<&str> = model_id.split("/").collect();
+        let hashes_file_path = get_hashes_file_dir_and_path(
+            model_parts[0],
+            model_parts[1]
+        );
+        let hashes_file_path_clone = hashes_file_path.1.clone();
+        let hashes_file_exists = fs::metadata(hashes_file_path_clone).is_ok();
+        if !hashes_file_exists {
+            fs::create_dir_all(hashes_file_path.0).unwrap();
+            let hashed_layers_result = download_and_hash_layers(model_id, safetensors_file_name);
+            let file = File::create(hashes_file_path.1).unwrap();
+            serde_json::to_writer_pretty(file, &hashed_layers_result).unwrap();
+        }
+    }
+
+
     // Download layers and hash each one
-    let url = "https://huggingface.co/KoboldAI/fairseq-dense-1.3B/resolve/main/model.safetensors?download=true";
-    let hashed_layers_result = download_and_hash_layers(url);
+    let model_id = "KoboldAI/fairseq-dense-1.3B";
+    let file_name = "model.safetensors";
+
+    let hashed_layers_result = download_and_hash_layers(model_id, file_name);
     println!("{:#?}", hashed_layers_result);
 
     // Download safetensor files in pieces then create a new safetensors files
@@ -48,7 +82,8 @@ fn main() {
     // process_files_locally();
 }
 
-fn download_and_hash_layers(url: &str) -> Map<String, Value> {
+fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Value> {
+    let url = &download::get_download_url_from_model_id(model_id, file_name);
     let mut result_obj: Map<String, Value> = Map::new();
 
     let (header, _) = download::download_safetensors_header(url);

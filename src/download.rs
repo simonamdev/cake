@@ -7,6 +7,11 @@ use std::path::PathBuf;
 
 use crate::hash;
 
+pub fn get_download_url_from_model_id(model_id: &str, file_name: &str) -> String {
+    let url = format!("https://huggingface.co/{}/resolve/main/{}?download=true", model_id, file_name).to_string();
+    return url;
+}
+
 pub fn combine_cached_files_to_safetensors_file(cache_directory: &str, target_file_path: &str) {
     let mut header_file_path = PathBuf::new();
     header_file_path.push(cache_directory);
