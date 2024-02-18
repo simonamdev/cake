@@ -17,25 +17,66 @@ mod download;
 mod hash;
 
 fn main() {
+    // Download layers and hash each one
     let url = "https://huggingface.co/KoboldAI/fairseq-dense-1.3B/resolve/main/model.safetensors?download=true";
-    let download_folder = "./download";
-    let cache_folder = "./cache";
-    download::download_full_safetensors_file(url, download_folder, cache_folder);
-    let target_file_path = "./test.safetensors";
-    download::combine_cached_files_to_safetensors_file(cache_folder, target_file_path);
-    // Test if it deserialises properly
-    let mut bytes = vec![];
-    let mut f = fs::File::open(target_file_path).unwrap();
-    f.read_to_end(&mut bytes).unwrap();
-    let result = SafeTensors::deserialize(&bytes).unwrap();
-    for (name, tensor) in result.tensors() {
-        if name == "model.layers.1.self_attn.k_proj.weight" {
-            let hash = hash::sha256_hash(&tensor.data());
-            println!("{} : {}", name, hash)
-        }
-        // println!("{:?}", tensor.data())
-    }
+    let hashed_layers_result = download_and_hash_layers(url);
+    println!("{:#?}", hashed_layers_result);
+
+    // Download safetensor files in pieces then create a new safetensors files
+    // Known issue: using this will not create an equivalent file to that available on huggingface due to
+    // differences in how the json header is formatted, however it will create a valid safetensors file
+    // let url = "https://huggingface.co/KoboldAI/fairseq-dense-1.3B/resolve/main/model.safetensors?download=true";
+    // let download_folder = "./download";
+    // let cache_folder = "./cache";
+    // download::download_full_safetensors_file(url, download_folder, cache_folder);
+    // let target_file_path = "./test.safetensors";
+    // download::combine_cached_files_to_safetensors_file(cache_folder, target_file_path);
+    // // Test if it deserialises properly
+    // let mut bytes = vec![];
+    // let mut f = fs::File::open(target_file_path).unwrap();
+    // f.read_to_end(&mut bytes).unwrap();
+    // let result = SafeTensors::deserialize(&bytes).unwrap();
+    // for (name, tensor) in result.tensors() {
+    //     if name == "model.layers.1.self_attn.k_proj.weight" {
+    //         let hash = hash::sha256_hash(&tensor.data());
+    //         println!("{} : {}", name, hash)
+    //     }
+    //     // println!("{:?}", tensor.data())
+    // }
+
+    // Process safetensor files locally
     // process_files_locally();
+}
+
+fn download_and_hash_layers(url: &str) -> Map<String, Value> {
+    let mut result_obj: Map<String, Value> = Map::new();
+
+    let (header, _) = download::download_safetensors_header(url);
+
+    // Iterate over each tensor, download it and hash the layer
+    for (tensor_name, tensor_metadata) in header.as_object().unwrap() {
+        if tensor_name == "__metadata__" {
+            continue;
+        }
+        // TODO: dedupe this
+        let offsets = tensor_metadata.get("data_offsets").and_then(Value::as_array).unwrap();
+        let offset_start = offsets[0].as_u64().unwrap();
+        let offset_end = offsets[1].as_u64().unwrap();
+        // Download the tensor
+        println!("Downloading {}...", tensor_name);
+        let tensor = download::download_tensor(url, offset_start, offset_end).unwrap();
+        // Hash the tensor
+        println!("Hashing {}...", tensor_name);
+        let hash = hash::sha256_hash(&tensor);
+        // Put that in the results
+        let tensor_result = json!({
+            "data_offsets": offsets,
+            "hash": hash
+        });
+        result_obj.insert(tensor_name.to_string(), tensor_result);
+    }
+
+    result_obj
 }
 
 fn process_files_locally() {

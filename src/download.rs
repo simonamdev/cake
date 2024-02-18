@@ -163,7 +163,7 @@ fn get_u64_from_u8_vec(bytes: Vec<u8>) -> u64 {
     u64::from_le_bytes(b)
 }
 
-fn download_tensor(url: &str, offset_start: u64, offset_end: u64) -> Result<Vec<u8>, Error> {
+pub fn download_tensor(url: &str, offset_start: u64, offset_end: u64) -> Result<Vec<u8>, Error> {
     let offset_diff = offset_end - offset_start;
     let byte_count = offset_diff;
 
