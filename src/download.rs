@@ -1,6 +1,5 @@
-use serde_json::{Value};
+use serde_json::Value;
 use reqwest::{blocking::Client, Error};
-use sha2::{Sha256, Digest};
 use std::fs::{self, metadata, File};
 use std::io::prelude::*;
 use std::path::PathBuf;

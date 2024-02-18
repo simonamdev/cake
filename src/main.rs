@@ -2,13 +2,11 @@ use core::panic;
 use std::collections::{HashMap, HashSet};
 use std::env;
 use std::fs::{self, File};
-use std::io::{self, BufReader, ErrorKind, Read, Seek, SeekFrom, Write};
+use std::io::{self, BufReader, Read, Seek, SeekFrom, Write};
 use std::convert::TryInto;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-use safetensors::{SafeTensorError, SafeTensors};
-use serde_json::{json, value, Error, Map, Value};
-use sha2::{Sha256, Digest};
+use serde_json::{json, Map, Value};
 
 use rayon::prelude::*;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -41,12 +39,14 @@ fn main() {
         );
         let hashes_file_path_clone = hashes_file_path.1.clone();
         let hashes_file_exists = fs::metadata(hashes_file_path_clone).is_ok();
-        if !hashes_file_exists {
-            let hashed_layers_result = download_and_hash_layers(model_id, safetensors_file_name);
-            fs::create_dir_all(hashes_file_path.0).unwrap();
-            let file = File::create(hashes_file_path.1).unwrap();
-            serde_json::to_writer_pretty(file, &hashed_layers_result).unwrap();
+        if hashes_file_exists {
+            println!("{} skipped as hashes file already exists", model_id);
+            continue
         }
+        let hashed_layers_result = download_and_hash_layers(model_id, safetensors_file_name);
+        fs::create_dir_all(hashes_file_path.0).unwrap();
+        let file = File::create(hashes_file_path.1).unwrap();
+        serde_json::to_writer_pretty(file, &hashed_layers_result).unwrap();
     }
 
 
