@@ -30,6 +30,7 @@ fn main() {
         // For now, handle only models with a single file, for simplicity
         // TODO: Handle multi file models!
         if file_names.as_array().unwrap().len() > 1 {
+            println!("{} skipped due to multiple safetensors files. (temporary limitation)", model_id);
             continue
         }
         let safetensors_file_name = file_names.as_array().unwrap().get(0).unwrap().as_str().unwrap();
