@@ -27,3 +27,4 @@ results/
 download/
 cache/
 test.safetensors
+retry.sh
