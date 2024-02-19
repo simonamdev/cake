@@ -104,8 +104,8 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
     let processed_entries: Vec<(String, Value)> = header_entries
         .par_iter()
         .filter_map(|(tensor_name, tensor_metadata)| {
-            bar.inc(1);
             if *tensor_name == "__metadata__" {
+                bar.inc(1);
                 None
             } else {
                 // TODO: dedupe this
@@ -123,6 +123,7 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
                     "data_offsets": offsets,
                     "hash": hash
                 });
+                bar.inc(1);
                 Some((tensor_name.to_string(), tensor_result))
             }
         })
