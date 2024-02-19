@@ -31,6 +31,10 @@ fn main() {
             println!("{} skipped due to multiple safetensors files. (temporary limitation)", model_id);
             continue
         }
+        if file_names.as_array().unwrap().len() == 0 {
+            println!("{} skipped due to no files", model_id);
+            continue
+        }
         let safetensors_file_name = file_names.as_array().unwrap().get(0).unwrap().as_str().unwrap();
         let model_parts: Vec<&str> = model_id.split("/").collect();
         let hashes_file_path = get_hashes_file_dir_and_path(
