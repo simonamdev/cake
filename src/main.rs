@@ -33,6 +33,11 @@ enum Commands {
         a: String,
         #[arg(long)]
         b: String,
+    },
+
+    Download {
+        #[arg(long)]
+        model_id: String,
     }
 }
 
@@ -46,18 +51,20 @@ fn main() {
         Some(Commands::Compare { a, b }) => {
             compare::compare_tensors_between_files(a, b);
         }
+        Some(Commands::Download { model_id }) => {
+            // Download safetensor files in pieces then create a new safetensors files
+            // Known issue: using this will not create an equivalent file to that available on huggingface due to
+            // differences in how the json header is formatted, however it will create a valid safetensors file
+            let url = &download::get_download_url_from_model_id(model_id, "model.safetensors");
+            let download_folder = "./download";
+            let cache_folder: &str = "./cache";
+            download::download_full_safetensors_file(url, download_folder, cache_folder);
+            let target_file_path = "./test.safetensors";
+            download::combine_cached_files_to_safetensors_file(cache_folder, target_file_path);
+        }
         None => {}
     }
 
-    // Download safetensor files in pieces then create a new safetensors files
-    // Known issue: using this will not create an equivalent file to that available on huggingface due to
-    // differences in how the json header is formatted, however it will create a valid safetensors file
-    // let url = "https://huggingface.co/KoboldAI/fairseq-dense-1.3B/resolve/main/model.safetensors?download=true";
-    // let download_folder = "./download";
-    // let cache_folder = "./cache";
-    // download::download_full_safetensors_file(url, download_folder, cache_folder);
-    // let target_file_path = "./test.safetensors";
-    // download::combine_cached_files_to_safetensors_file(cache_folder, target_file_path);
     // // Test if it deserialises properly
     // let mut bytes = vec![];
     // let mut f = fs::File::open(target_file_path).unwrap();
