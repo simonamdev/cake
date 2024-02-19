@@ -6,6 +6,8 @@ use std::io::{self, BufReader, Read, Seek, SeekFrom, Write};
 use std::convert::TryInto;
 use std::path::PathBuf;
 
+use clap::{Parser, Subcommand};
+
 use serde_json::{json, Map, Value};
 
 use rayon::prelude::*;
@@ -13,8 +15,57 @@ use indicatif::{ProgressBar, ProgressStyle};
 
 mod download;
 mod hash;
+mod compare;
+
+#[derive(Parser)]
+#[command(version, about, long_about = None)]
+struct Cli {
+    #[command(subcommand)]
+    command: Option<Commands>,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    HashingExperiment {},
+}
 
 fn main() {
+    let cli = Cli::parse();
+
+    match &cli.command {
+        Some(Commands::HashingExperiment {}) => {
+            run_hashing_experiment();
+        }
+        None => {}
+    }
+
+    // Download safetensor files in pieces then create a new safetensors files
+    // Known issue: using this will not create an equivalent file to that available on huggingface due to
+    // differences in how the json header is formatted, however it will create a valid safetensors file
+    // let url = "https://huggingface.co/KoboldAI/fairseq-dense-1.3B/resolve/main/model.safetensors?download=true";
+    // let download_folder = "./download";
+    // let cache_folder = "./cache";
+    // download::download_full_safetensors_file(url, download_folder, cache_folder);
+    // let target_file_path = "./test.safetensors";
+    // download::combine_cached_files_to_safetensors_file(cache_folder, target_file_path);
+    // // Test if it deserialises properly
+    // let mut bytes = vec![];
+    // let mut f = fs::File::open(target_file_path).unwrap();
+    // f.read_to_end(&mut bytes).unwrap();
+    // let result = SafeTensors::deserialize(&bytes).unwrap();
+    // for (name, tensor) in result.tensors() {
+    //     if name == "model.layers.1.self_attn.k_proj.weight" {
+    //         let hash = hash::sha256_hash(&tensor.data());
+    //         println!("{} : {}", name, hash)
+    //     }
+    //     // println!("{:?}", tensor.data())
+    // }
+
+    // Process safetensor files locally
+    // process_files_locally();
+}
+
+fn run_hashing_experiment() {
     // Get the model ids and file names from the JSON file
     let mut file = File::open("safetensor-models-text-gen.json").unwrap();
     let mut models_json_str = String::new();
@@ -60,31 +111,6 @@ fn main() {
 
     let hashed_layers_result = download_and_hash_layers(model_id, file_name);
     println!("{:#?}", hashed_layers_result);
-
-    // Download safetensor files in pieces then create a new safetensors files
-    // Known issue: using this will not create an equivalent file to that available on huggingface due to
-    // differences in how the json header is formatted, however it will create a valid safetensors file
-    // let url = "https://huggingface.co/KoboldAI/fairseq-dense-1.3B/resolve/main/model.safetensors?download=true";
-    // let download_folder = "./download";
-    // let cache_folder = "./cache";
-    // download::download_full_safetensors_file(url, download_folder, cache_folder);
-    // let target_file_path = "./test.safetensors";
-    // download::combine_cached_files_to_safetensors_file(cache_folder, target_file_path);
-    // // Test if it deserialises properly
-    // let mut bytes = vec![];
-    // let mut f = fs::File::open(target_file_path).unwrap();
-    // f.read_to_end(&mut bytes).unwrap();
-    // let result = SafeTensors::deserialize(&bytes).unwrap();
-    // for (name, tensor) in result.tensors() {
-    //     if name == "model.layers.1.self_attn.k_proj.weight" {
-    //         let hash = hash::sha256_hash(&tensor.data());
-    //         println!("{} : {}", name, hash)
-    //     }
-    //     // println!("{:?}", tensor.data())
-    // }
-
-    // Process safetensor files locally
-    // process_files_locally();
 }
 
 fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Value> {
