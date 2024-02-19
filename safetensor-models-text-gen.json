@@ -101431,9 +101431,6 @@
     "model-00002-of-00003.safetensors",
     "model-00003-of-00003.safetensors"
   ],
-  "Arman123/zephyr-7b-beta-openassistant-guanaco1": [
-    "adapter_model.safetensors"
-  ],
   "Tonystark1/Thor": [
     "adapter_model.safetensors",
     "checkpoint-4/adapter_model.safetensors"
