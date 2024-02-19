@@ -19,10 +19,10 @@ def count_layer_matches(file_paths):
             if file_path_a == file_path_b:
                 continue
             model_a_hashes = [
-                d['hash'] for d in model_a['tensors'].values()
+                d['hash'] for d in model_a.values()
             ]
             model_b_hashes = [
-                d['hash'] for d in model_b['tensors'].values()
+                d['hash'] for d in model_b.values()
             ]
             match_count = len(set(model_a_hashes) & set(model_b_hashes))
             if (file_path_a, file_path_b, len(model_a_hashes), match_count) in results:
@@ -32,7 +32,7 @@ def count_layer_matches(file_paths):
 
 def calculate_layer_size_mb(file_path):
     model = read_json(file_path)
-    total_layer_size_bytes = sum([d['byte_count'] for d in model['tensors'].values()])
+    total_layer_size_bytes = sum([d['data_offsets'][1] - d['data_offsets'][0] for d in model.values()])
     return total_layer_size_bytes / 1024.0 / 1024.0
 
 def main():
@@ -51,7 +51,7 @@ def main():
     for k, v in c.most_common(20):
         similar_perc = round(v, 2)
         layer_size_mb = calculate_layer_size_mb(k[0])
-        print(f'{k[0]} and {k[1]}: [{k[3]}/{k[2]} similar] {similar_perc}% ({layer_size_mb}MB -> {layer_size_mb*((100-similar_perc)/100.0)}MB approx)')
+        print(f'{k[0]} and {k[1]}: [{k[3]}/{k[2]} similar] {similar_perc}% ({round(layer_size_mb, 2)}MB -> {round(layer_size_mb*((100-similar_perc)/100.0), 2)}MB approx)')
 
     threshold = 70 # percent similar
     count_over_threshold = 0
