@@ -3,7 +3,7 @@ use std::io::{self, BufReader, Read, Seek, SeekFrom, Write};
 
 use safetensors::SafeTensors;
 
-fn compare_tensors_between_files(file_path_a: &str, file_path_b: &str) {
+pub fn compare_tensors_between_files(file_path_a: &str, file_path_b: &str) {
     let mut bytes_a = vec![];
     let mut f_a = fs::File::open(file_path_a).unwrap();
     f_a.read_to_end(&mut bytes_a).unwrap();

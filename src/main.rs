@@ -27,6 +27,13 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     HashingExperiment {},
+
+    Compare {
+        #[arg(long)]
+        a: String,
+        #[arg(long)]
+        b: String,
+    }
 }
 
 fn main() {
@@ -35,6 +42,9 @@ fn main() {
     match &cli.command {
         Some(Commands::HashingExperiment {}) => {
             run_hashing_experiment();
+        }
+        Some(Commands::Compare { a, b }) => {
+            compare::compare_tensors_between_files(a, b);
         }
         None => {}
     }
