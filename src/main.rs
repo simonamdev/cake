@@ -97,6 +97,11 @@ fn run_hashing_experiment() {
             continue
         }
         let safetensors_file_name = file_names.as_array().unwrap().get(0).unwrap().as_str().unwrap();
+        // For now skip adapter models as they are not being parsed correctly
+        if safetensors_file_name.contains("adapter_model") {
+            println!("{} skipped due to being an adapter model file (temporary limitation)", model_id);
+            continue;
+        }
         let model_parts: Vec<&str> = model_id.split("/").collect();
         let hashes_file_path = get_hashes_file_dir_and_path(
             model_parts[0],
