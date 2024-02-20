@@ -1,8 +1,6 @@
-use std::collections::HashMap;
-use std::fs::{self, File};
-use std::io::{self, BufReader, Read, Seek, SeekFrom, Write};
+use std::fs::{self};
+use std::io::Read;
 
-use safetensors::tensor::TensorView;
 use safetensors::{SafeTensors, View};
 
 pub fn compare_tensors_between_files(file_path_a: &str, file_path_b: &str) {
@@ -22,17 +20,22 @@ pub fn compare_tensors_between_files(file_path_a: &str, file_path_b: &str) {
         println!("Comparing tensors with the name: {}", name);
         // println!("{:?}", tensor.data());
         let tensor_b = result_b.tensor(&name).unwrap();
-        let (count_same, all_same) = compare_slices(
-            tensor_a.data(), 
-            tensor_b.data()
+        let (count_same, all_same) = compare_slices(tensor_a.data(), tensor_b.data());
+        println!(
+            "Count Same: {}/{}, All Same: {}",
+            count_same,
+            tensor_a.data_len(),
+            all_same
         );
-        println!("Count Same: {}/{}, All Same: {}", count_same, tensor_a.data_len(), all_same);
         if !all_same {
             all_layers_same = false;
         }
     }
 
-    println!("The tensors of {} and {} and completely the same at a byte level: {}", file_path_a, file_path_b, all_layers_same)
+    println!(
+        "The tensors of {} and {} and completely the same at a byte level: {}",
+        file_path_a, file_path_b, all_layers_same
+    )
     // for (name, tensor_b) in result_b.tensors() {
     //     println!("{}", name);
     //     // println!("{:?}", tensor.data());

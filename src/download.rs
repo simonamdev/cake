@@ -1,5 +1,5 @@
-use serde_json::Value;
 use reqwest::{blocking::Client, Error};
+use serde_json::Value;
 use std::fs::{self, metadata, File};
 use std::io::prelude::*;
 use std::path::PathBuf;
@@ -7,7 +7,11 @@ use std::path::PathBuf;
 use crate::hash;
 
 pub fn get_download_url_from_model_id(model_id: &str, file_name: &str) -> String {
-    let url = format!("https://huggingface.co/{}/resolve/main/{}?download=true", model_id, file_name).to_string();
+    let url = format!(
+        "https://huggingface.co/{}/resolve/main/{}?download=true",
+        model_id, file_name
+    )
+    .to_string();
     return url;
 }
 
@@ -19,7 +23,6 @@ pub fn combine_cached_files_to_safetensors_file(cache_directory: &str, target_fi
     let mut header_file = fs::File::open(header_file_path).unwrap();
     let mut header_bytes = Vec::new();
     header_file.read_to_end(&mut header_bytes).unwrap();
-    
 
     println!("{}", header_bytes.len());
 
@@ -27,18 +30,15 @@ pub fn combine_cached_files_to_safetensors_file(cache_directory: &str, target_fi
         .write(true)
         .truncate(true)
         .create(true)
-        .open(target_file_path).unwrap();
+        .open(target_file_path)
+        .unwrap();
     // Write the header length
     let header_length_bytes = &header_bytes.len().to_le_bytes();
     println!("{:?}", header_length_bytes);
-    output_file.write_all(
-        header_length_bytes
-    ).unwrap();
+    output_file.write_all(header_length_bytes).unwrap();
     println!("{:?}", header_bytes.len());
     // Write the header bytes
-    output_file.write_all(
-        &header_bytes
-    ).unwrap();
+    output_file.write_all(&header_bytes).unwrap();
     // Iterate through the tensors and write them
 
     let mut header: Value = serde_json::from_slice(&header_bytes).unwrap();
@@ -66,14 +66,12 @@ pub fn combine_cached_files_to_safetensors_file(cache_directory: &str, target_fi
             let mut tensor_file = fs::File::open(tensor_file_cache_path).unwrap();
             let mut tensor_bytes: Vec<_> = Vec::new();
             tensor_file.read_to_end(&mut tensor_bytes).unwrap();
-            output_file.write_all(
-                &tensor_bytes
-            ).unwrap();
+            output_file.write_all(&tensor_bytes).unwrap();
         }
     }
 }
 
-pub fn download_full_safetensors_file(url: &str, download_directory: &str, cache_directory: &str) {
+pub fn download_full_safetensors_file(url: &str, _download_directory: &str, cache_directory: &str) {
     // First download the header to understand the file
     let (header, header_length) = download_safetensors_header(url);
 
@@ -82,7 +80,7 @@ pub fn download_full_safetensors_file(url: &str, download_directory: &str, cache
     header_file_path.push(cache_directory);
     header_file_path.push("header.json");
     let mut header_file = File::create(header_file_path).unwrap();
-    let mut header_buf =serde_json::to_string(&header).unwrap().into_bytes();
+    let mut header_buf = serde_json::to_string(&header).unwrap().into_bytes();
     // TAKEN DIRECTLY FROM SAFETENSORS -|
     // Force alignment to 8 bytes.
     let extra = (8 - header_buf.len() % 8) % 8;
@@ -96,9 +94,10 @@ pub fn download_full_safetensors_file(url: &str, download_directory: &str, cache
     header_length_path.push(cache_directory);
     header_length_path.push("header.length");
     let mut header_length_file = File::create(header_length_path).unwrap();
-    header_length_file.write_all(format!("{}", header_length).as_bytes()).unwrap();
+    header_length_file
+        .write_all(format!("{}", header_length).as_bytes())
+        .unwrap();
     header_length_file.flush().unwrap();
-
 
     for (key, value) in header.as_object().unwrap() {
         if key == "__metadata__" {
@@ -112,7 +111,10 @@ pub fn download_full_safetensors_file(url: &str, download_directory: &str, cache
         tensor_file_cache_path.push(cache_directory);
         tensor_file_cache_path.push(key);
         if file_exists(&tensor_file_cache_path) {
-            println!("{} already exists, skipping...", tensor_file_cache_path.display());
+            println!(
+                "{} already exists, skipping...",
+                tensor_file_cache_path.display()
+            );
             continue;
         }
         let offsets = value.get("data_offsets").and_then(Value::as_array).unwrap();
@@ -133,7 +135,6 @@ pub fn download_full_safetensors_file(url: &str, download_directory: &str, cache
     }
 }
 
-
 fn file_exists(path: &PathBuf) -> bool {
     if let Ok(metadata) = metadata(path) {
         metadata.is_file()
@@ -151,7 +152,8 @@ pub fn download_safetensors_header(url: &str) -> (serde_json::Value, u64) {
 
     println!("JSON header is {json_header_length} bytes long");
 
-    let header_bytes: Vec<u8> = download_part_of_file(url, 8, json_header_length.try_into().unwrap()).unwrap();
+    let header_bytes: Vec<u8> =
+        download_part_of_file(url, 8, json_header_length.try_into().unwrap()).unwrap();
     let json_string = String::from_utf8_lossy(&header_bytes);
     println!("{:}", json_string);
     println!("{}", json_header_length);
@@ -176,17 +178,18 @@ pub fn download_tensor(url: &str, offset_start: u64, offset_end: u64) -> Result<
     tensor
 }
 
-fn download_part_of_file(url: &str, byte_index: u64, number_of_bytes: u64) -> Result<Vec<u8>, Error> {
-
+fn download_part_of_file(
+    url: &str,
+    byte_index: u64,
+    number_of_bytes: u64,
+) -> Result<Vec<u8>, Error> {
     // Range is exclusive. Example: 0-499 is byte 0 to byte 499, so 500 bytes in total
     let range_header_value = format!("bytes={}-{}", byte_index, byte_index + number_of_bytes - 1);
     let client = Client::new();
-    let response = client.get(url)
-        .header("Range", range_header_value)
-        .send()?;
+    let response = client.get(url).header("Range", range_header_value).send()?;
 
     let status_code = response.status();
-    println!("Status Code: {}", status_code);
+    // println!("Status Code: {}", status_code);
 
     let mut buffer: Vec<u8> = Vec::new();
 
