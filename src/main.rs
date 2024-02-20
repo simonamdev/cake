@@ -128,7 +128,11 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
     let header_entries: Vec<(&String, &Value)> = header.as_object().unwrap().iter().collect();
 
     let sty_main = ProgressStyle::with_template("{bar:40.green/yellow} {pos:>4}/{len:4}").unwrap();
-    let sty_aux = ProgressStyle::with_template("{spinner:.green} {prefix} {msg} {pos}/{len} bytes").unwrap();
+    let sty_aux = ProgressStyle::with_template(
+        "[{elapsed_precise}] {prefix} {bar:20.cyan/blue} {pos:>7}/{len:7}B {msg}",
+    )
+    .unwrap()
+    .progress_chars("##-");
 
     // - 1 to remove the metadata key
     let main_bar = ProgressBar::new(header_entries.len() as u64 - 1);
@@ -154,14 +158,13 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
                 pb.set_style(sty_aux.clone());
                 pb.enable_steady_tick(Duration::from_millis(200));
                 pb.set_prefix(format!("{}", tensor_name));
-                pb.set_message("Downloading");
+                pb.set_message("Downloading...");
 
                 // Download the tensor
                 // println!("{}: Downloading {}...", model_id, tensor_name);
                 let tensor = download::download_tensor(url, offset_start, offset_end, Some(pb.clone())).unwrap(); // Handle unwrap better
                 // Hash the tensor
-                // println!("Hashing {}...", tensor_name);
-                pb.set_message("Hashing");
+                pb.set_message("Hashing...");
                 let hash = hash::sha256_hash(&tensor);
                 // Put that in the results
                 let tensor_result = json!({
