@@ -65773,9 +65773,6 @@
     "model-00001-of-00002.safetensors",
     "model-00002-of-00002.safetensors"
   ],
-  "DatPySci/pythia-1b-sft-50k": [
-    "model.safetensors"
-  ],
   "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO": [
     "model-00001-of-00019.safetensors",
     "model-00002-of-00019.safetensors",
@@ -82997,9 +82994,6 @@
     "model-00004-of-00006.safetensors",
     "model-00005-of-00006.safetensors",
     "model-00006-of-00006.safetensors"
-  ],
-  "DatPySci/pythia-1b-dpo": [
-    "model.safetensors"
   ],
   "kam414/quantized-pre-train": [
     "model-00001-of-00003.safetensors",
@@ -116871,9 +116865,6 @@
     "model-00001-of-00002.safetensors",
     "model-00002-of-00002.safetensors"
   ],
-  "DatPySci/pythia-1b-spin-iter1": [
-    "model.safetensors"
-  ],
   "altomek/Midnight-Rose-70B-v2.0.3-3.75bpw-EXL2": [
     "output-00001-of-00004.safetensors",
     "output-00002-of-00004.safetensors",
@@ -117034,9 +117025,6 @@
     "model-00006-of-00008.safetensors",
     "model-00007-of-00008.safetensors",
     "model-00008-of-00008.safetensors"
-  ],
-  "DatPySci/pythia-1b-spin-iter2": [
-    "model.safetensors"
   ],
   "andrealexroom/LexLLMv0.0.0.x.10.9c": [
     "model-00001-of-00003.safetensors",
