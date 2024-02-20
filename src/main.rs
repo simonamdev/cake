@@ -127,9 +127,15 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
     // Convert the JSON object into a slice of mutable key-value pairs
     let header_entries: Vec<(&String, &Value)> = header.as_object().unwrap().iter().collect();
 
-    let mp =MultiProgress::new();
     let sty_main = ProgressStyle::with_template("{bar:40.green/yellow} {pos:>4}/{len:4}").unwrap();
-    let sty_aux = ProgressStyle::with_template("{spinner:.green} {msg} {pos}/{len}").unwrap();
+    let sty_aux = ProgressStyle::with_template("{spinner:.green} {prefix} {msg} {pos}/{len} bytes").unwrap();
+
+    // - 1 to remove the metadata key
+    let main_bar = ProgressBar::new(header_entries.len() as u64 - 1);
+    main_bar.set_style(sty_main);
+    let main_bar_clone = main_bar.clone();
+    let mp = MultiProgress::new();
+    mp.add(main_bar);
 
     // Process the header entries in parallel
     let processed_entries: Vec<(String, Value)> = header_entries
@@ -147,13 +153,15 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
                 let pb = mp.add(ProgressBar::new(offset_diff));
                 pb.set_style(sty_aux.clone());
                 pb.enable_steady_tick(Duration::from_millis(200));
-                pb.set_message(format!("{}", tensor_name));
+                pb.set_prefix(format!("{}", tensor_name));
+                pb.set_message("Downloading");
 
                 // Download the tensor
                 // println!("{}: Downloading {}...", model_id, tensor_name);
                 let tensor = download::download_tensor(url, offset_start, offset_end, Some(pb.clone())).unwrap(); // Handle unwrap better
                 // Hash the tensor
                 // println!("Hashing {}...", tensor_name);
+                pb.set_message("Hashing");
                 let hash = hash::sha256_hash(&tensor);
                 // Put that in the results
                 let tensor_result = json!({
@@ -161,12 +169,14 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
                     "hash": hash
                 });
                 pb.finish_and_clear();
+                main_bar_clone.inc(1);
                 Some((tensor_name.to_string(), tensor_result))
             }
         })
         .collect();
-
+    main_bar_clone.finish();
     mp.clear().unwrap();
+
 
     // Create a new map and insert processed entries
     let mut result_obj: Map<String, Value> = Map::new();
