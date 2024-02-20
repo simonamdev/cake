@@ -2,13 +2,15 @@ use std::env;
 use std::fs::{self, File};
 use std::io::Read;
 use std::convert::TryInto;
+use std::sync::Arc;
+use std::time::Duration;
 
 use clap::{Parser, Subcommand};
 
 use serde_json::{json, Map, Value};
 
 use rayon::prelude::*;
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
 mod download;
 mod hash;
@@ -125,44 +127,46 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
     // Convert the JSON object into a slice of mutable key-value pairs
     let header_entries: Vec<(&String, &Value)> = header.as_object().unwrap().iter().collect();
 
-    let bar = ProgressBar::new(header_entries.len().try_into().unwrap());
-    bar.set_style(
-        ProgressStyle::default_bar()
-            .template("[{elapsed_precise}] {bar:40.cyan/blue} {percent}% {msg}")
-            .unwrap()
-            .progress_chars("##-"),
-    );
+    let mp =MultiProgress::new();
+    let sty_main = ProgressStyle::with_template("{bar:40.green/yellow} {pos:>4}/{len:4}").unwrap();
+    let sty_aux = ProgressStyle::with_template("{spinner:.green} {msg} {pos}/{len}").unwrap();
 
     // Process the header entries in parallel
     let processed_entries: Vec<(String, Value)> = header_entries
         .par_iter()
         .filter_map(|(tensor_name, tensor_metadata)| {
             if *tensor_name == "__metadata__" {
-                bar.inc(1);
                 None
             } else {
                 // TODO: dedupe this
                 let offsets = tensor_metadata.get("data_offsets").and_then(Value::as_array)?;
                 let offset_start = offsets[0].as_u64()?;
                 let offset_end = offsets[1].as_u64()?;
+                let offset_diff = offset_end - offset_start;
+                // Create the progress bar based on the length
+                let pb = mp.add(ProgressBar::new(offset_diff));
+                pb.set_style(sty_aux.clone());
+                pb.enable_steady_tick(Duration::from_millis(200));
+                pb.set_message(format!("{}", tensor_name));
+
                 // Download the tensor
-                println!("{}: Downloading {}...", model_id, tensor_name);
-                let tensor = download::download_tensor(url, offset_start, offset_end).unwrap(); // Handle unwrap better
+                // println!("{}: Downloading {}...", model_id, tensor_name);
+                let tensor = download::download_tensor(url, offset_start, offset_end, Some(pb.clone())).unwrap(); // Handle unwrap better
                 // Hash the tensor
-                println!("Hashing {}...", tensor_name);
+                // println!("Hashing {}...", tensor_name);
                 let hash = hash::sha256_hash(&tensor);
                 // Put that in the results
                 let tensor_result = json!({
                     "data_offsets": offsets,
                     "hash": hash
                 });
-                bar.inc(1);
+                pb.finish_and_clear();
                 Some((tensor_name.to_string(), tensor_result))
             }
         })
         .collect();
 
-    bar.finish();
+    mp.clear().unwrap();
 
     // Create a new map and insert processed entries
     let mut result_obj: Map<String, Value> = Map::new();
