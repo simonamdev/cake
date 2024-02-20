@@ -142,6 +142,7 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
     mp.add(main_bar);
 
     // Process the header entries in parallel
+    // TODO: Sort by offset diff descending, so we don't get stuck downloading large tensors at the end
     let processed_entries: Vec<(String, Value)> = header_entries
         .par_iter()
         .filter_map(|(tensor_name, tensor_metadata)| {
