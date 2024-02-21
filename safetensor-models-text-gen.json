@@ -64029,10 +64029,6 @@
     "model-00004-of-00005.safetensors",
     "model-00005-of-00005.safetensors"
   ],
-  "Abdulrehmans/bling-sheared-llama-1.3b-0.1-quantized-6bit": [
-    "model-00001-of-00002.safetensors",
-    "model-00002-of-00002.safetensors"
-  ],
   "mtc/LeoLM-leo-mistral-hessianai-7b-no-packing-finetuned": [
     "model-00001-of-00003.safetensors",
     "model-00002-of-00003.safetensors",
@@ -117430,11 +117426,6 @@
     "output-00001-of-00003.safetensors",
     "output-00002-of-00003.safetensors",
     "output-00003-of-00003.safetensors"
-  ],
-  "AiMavenAi/AiMaven-PrometheusIII": [
-    "model-00001-of-00003.safetensors",
-    "model-00002-of-00003.safetensors",
-    "model-00003-of-00003.safetensors"
   ],
   "LoneStriker/34b-beta-4.65bpw-h6-exl2": [
     "output-00001-of-00003.safetensors",

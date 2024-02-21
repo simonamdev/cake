@@ -71,7 +71,7 @@ fn main() {
             let mut i = 0;
             for (model_id, file_names) in json.as_object().unwrap() {
                 i += 1;
-                if i < 205 {
+                if i < 285 {
                     // Update this as we fix issues
                     continue;
                 }
@@ -165,8 +165,6 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
     let (header, _) = download::download_safetensors_header(url);
 
     // Iterate over each tensor, download it and hash the layer
-    // Convert the JSON object into a slice of mutable key-value pairs
-    let header_entries: Vec<(&String, &Value)> = header.as_object().unwrap().iter().collect();
     let mut layers: Vec<Layer> = header
         .as_object()
         .unwrap()
@@ -206,7 +204,7 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
     .progress_chars("##-");
 
     // - 1 to remove the metadata key
-    let main_bar = ProgressBar::new(header_entries.len() as u64 - 1);
+    let main_bar = ProgressBar::new(layers.len() as u64);
     main_bar.set_style(sty_main);
     let main_bar_clone = main_bar.clone();
     let mp = MultiProgress::new();
