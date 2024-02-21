@@ -1,12 +1,10 @@
 use indicatif::ProgressBar;
 use reqwest::{blocking::Client, Error};
 use serde_json::Value;
-use sha2::digest::consts::U74;
 use std::fs::{self, metadata, File};
 use std::io::prelude::*;
 use std::path::PathBuf;
 
-use crate::hash;
 
 pub fn get_download_url_from_model_id(model_id: &str, file_name: &str) -> String {
     let url = format!(
@@ -26,7 +24,7 @@ pub fn combine_cached_files_to_safetensors_file(cache_directory: &str, target_fi
     let mut header_bytes = Vec::new();
     header_file.read_to_end(&mut header_bytes).unwrap();
 
-    println!("{}", header_bytes.len());
+    // println!("{}", header_bytes.len());
 
     let mut output_file = fs::OpenOptions::new()
         .write(true)
@@ -152,10 +150,10 @@ pub fn download_safetensors_header(url: &str) -> (serde_json::Value, u64) {
     let header_bytes: Vec<u8> =
         download_part_of_file(url, 8, json_header_length.try_into().unwrap(), None).unwrap();
     let json_string = String::from_utf8_lossy(&header_bytes);
-    println!("{:}", json_string);
-    println!("{}", json_header_length);
-    println!("{}", json_string.len());
-    println!("{}", header_bytes.len());
+    // println!("{:}", json_string);
+    // println!("{}", json_header_length);
+    // println!("{}", json_string.len());
+    // println!("{}", header_bytes.len());
     let metadata_json: serde_json::Value = serde_json::from_str(&json_string).unwrap();
 
     (metadata_json, json_header_length)
@@ -188,7 +186,7 @@ fn download_part_of_file(
     let client = Client::new();
     let mut response = client.get(url).header("Range", range_header_value).send()?;
 
-    let status_code = response.status();
+    // let status_code = response.status();
     // println!("Status Code: {}", status_code);
 
     // Setup the progress bar if one is available

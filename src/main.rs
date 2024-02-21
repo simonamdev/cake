@@ -1,8 +1,6 @@
 use std::env;
 use std::fs::{self, File};
 use std::io::Read;
-use std::convert::TryInto;
-use std::sync::Arc;
 use std::time::Duration;
 
 use clap::{Parser, Subcommand};
@@ -34,6 +32,8 @@ enum Commands {
         b: String,
     },
 
+    CheckModels {},
+
     Download {
         #[arg(long)]
         model_id: String,
@@ -60,6 +60,35 @@ fn main() {
             download::download_full_safetensors_file(url, download_folder, cache_folder);
             let target_file_path = "./test.safetensors";
             download::combine_cached_files_to_safetensors_file(cache_folder, target_file_path);
+        }
+        Some(Commands::CheckModels {  }) => {
+            // Get the model ids and file names from the JSON file
+            let mut file = File::open("safetensor-models-text-gen.json").unwrap();
+            let mut models_json_str = String::new();
+            file.read_to_string(&mut models_json_str).unwrap();
+
+            let json: Value = serde_json::from_str(&models_json_str).unwrap();
+            let mut i = 0;
+            for (model_id, file_names) in json.as_object().unwrap() {
+                i += 1;
+                for file_name in file_names.as_array().unwrap() {
+                    println!("{}/{}: {} ({})", i, json.as_object().unwrap().len(), model_id, file_name);
+                    let model_parts: Vec<&str> = model_id.split("/").collect();
+                    let hashes_file_path = get_hashes_file_dir_and_path(
+                        model_parts[0],
+                        model_parts[1]
+                    );
+                    let hashes_file_path_clone = hashes_file_path.1.clone();
+                    let hashes_file_exists = fs::metadata(hashes_file_path_clone).is_ok();
+                    if hashes_file_exists {
+                        println!("{} skipped as hashes file already exists", model_id);
+                        continue
+                    }
+                    // Download just the header and try to parse it
+                    let url = &download::get_download_url_from_model_id(model_id, file_name.as_str().unwrap());
+                    download::download_safetensors_header(url);
+                }
+            }
         }
         None => {}
     }
