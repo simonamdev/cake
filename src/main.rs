@@ -71,7 +71,7 @@ fn main() {
             let mut i = 0;
             for (model_id, file_names) in json.as_object().unwrap() {
                 i += 1;
-                if i < 285 {
+                if i < 525 {
                     // Update this as we fix issues
                     continue;
                 }
@@ -151,7 +151,7 @@ fn run_hashing_experiment() {
     println!("{:#?}", hashed_layers_result);
 }
 
-#[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Debug, Eq, Ord, PartialEq, PartialOrd, Clone)]
 struct Layer {
     name: String,
     offset_start: u64,
@@ -253,6 +253,58 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
 
 
     result_obj
+}
+
+fn par_download_layers(model_id: &str, file_name: &str, pb: ProgressBar) -> impl ParallelIterator<Item = (String, Vec<u8>)> {
+    let url = download::get_download_url_from_model_id(model_id, file_name);
+
+    let (header, _) = download::download_safetensors_header(&url);
+
+    // Iterate over each tensor and download it
+    let layers: Vec<Layer> = header
+        .as_object()
+        .unwrap()
+        .iter()
+        .filter_map(|data| {
+            if data.0 != "__metadata__" {
+                Some(data)
+            } else {
+                None
+            }
+        })
+        .map(|(name, metadata)| {
+            let offsets = metadata.get("data_offsets").and_then(Value::as_array).unwrap();
+            let offset_start = offsets[0].as_u64().unwrap();
+            let offset_end = offsets[1].as_u64().unwrap();
+            let offset_diff = offset_end - offset_start;
+            Layer{
+                name: name.to_string(),
+                offset_start: offset_start,
+                offset_end: offset_end,
+                size: offset_diff
+            }
+        })
+        .collect();
+
+    let mut sorted_layers = layers.clone();
+    sorted_layers.sort_by(|a: &Layer, b: &Layer| {
+        b.size.cmp(&a.size)
+    });
+
+    sorted_layers
+        .into_par_iter()
+        .map(move |layer| {
+            // Download the tensor
+            // println!("{}: Downloading {}...", model_id, tensor_name);
+            let tensor: Vec<u8> = download::download_tensor(
+                &url,
+                layer.offset_start,
+                layer.offset_end,
+                Some(pb.clone())
+            ).unwrap(); // Handle unwrap better
+            pb.finish_and_clear();
+            (layer.name.to_string(), tensor)
+        })
 }
 
 fn get_hashes_file_dir_and_path(model_account: &str, model_name: &str) -> (String, String) {
