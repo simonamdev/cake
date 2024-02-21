@@ -71,13 +71,13 @@ pub fn combine_cached_files_to_safetensors_file(cache_directory: &str, target_fi
     }
 }
 
-pub fn download_full_safetensors_file(url: &str, _download_directory: &str, cache_directory: &str) {
+pub fn download_full_safetensors_file(url: &str, storage_dir: &str) {
     // First download the header to understand the file
     let (header, header_length) = download_safetensors_header(url);
 
     // Write the header to a file
     let mut header_file_path = PathBuf::new();
-    header_file_path.push(cache_directory);
+    header_file_path.push(storage_dir);
     header_file_path.push("header.json");
     let mut header_file = File::create(header_file_path).unwrap();
     let mut header_buf = serde_json::to_string(&header).unwrap().into_bytes();
@@ -91,7 +91,7 @@ pub fn download_full_safetensors_file(url: &str, _download_directory: &str, cach
 
     // Write the header length to a file
     let mut header_length_path = PathBuf::new();
-    header_length_path.push(cache_directory);
+    header_length_path.push(storage_dir);
     header_length_path.push("header.length");
     let mut header_length_file = File::create(header_length_path).unwrap();
     header_length_file
@@ -108,7 +108,7 @@ pub fn download_full_safetensors_file(url: &str, _download_directory: &str, cach
         // println!("{} {}", key, value);
         // If the file exists, skip it
         let mut tensor_file_cache_path = PathBuf::new();
-        tensor_file_cache_path.push(cache_directory);
+        tensor_file_cache_path.push(storage_dir);
         tensor_file_cache_path.push(key);
         if file_exists(&tensor_file_cache_path) {
             println!(

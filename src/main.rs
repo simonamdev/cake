@@ -54,10 +54,10 @@ fn main() {
             // Download safetensor files in pieces then create a new safetensors files
             // Known issue: using this will not create an equivalent file to that available on huggingface due to
             // differences in how the json header is formatted, however it will create a valid safetensors file
+            // Known issue: only works for models with a single file called "model.safetensors"
             let url = &download::get_download_url_from_model_id(model_id, "model.safetensors");
-            let download_folder = "./download";
             let cache_folder: &str = "./cache";
-            download::download_full_safetensors_file(url, download_folder, cache_folder);
+            download::download_full_safetensors_file(url, cache_folder);
             let target_file_path = "./test.safetensors";
             download::combine_cached_files_to_safetensors_file(cache_folder, target_file_path);
         }
@@ -71,6 +71,10 @@ fn main() {
             let mut i = 0;
             for (model_id, file_names) in json.as_object().unwrap() {
                 i += 1;
+                if i < 205 {
+                    // Update this as we fix issues
+                    continue;
+                }
                 for file_name in file_names.as_array().unwrap() {
                     println!("{}/{}: {} ({})", i, json.as_object().unwrap().len(), model_id, file_name);
                     let model_parts: Vec<&str> = model_id.split("/").collect();
@@ -147,6 +151,14 @@ fn run_hashing_experiment() {
     println!("{:#?}", hashed_layers_result);
 }
 
+#[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
+struct Layer {
+    name: String,
+    offset_start: u64,
+    offset_end: u64,
+    size: u64
+}
+
 fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Value> {
     let url = &download::get_download_url_from_model_id(model_id, file_name);
 
@@ -155,6 +167,36 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
     // Iterate over each tensor, download it and hash the layer
     // Convert the JSON object into a slice of mutable key-value pairs
     let header_entries: Vec<(&String, &Value)> = header.as_object().unwrap().iter().collect();
+    let mut layers: Vec<Layer> = header
+        .as_object()
+        .unwrap()
+        .iter()
+        .filter_map(|data| {
+            if data.0 != "__metadata__" {
+                Some(data)
+            } else {
+                None
+            }
+        })
+        .map(|(name, metadata)| {
+            let offsets = metadata.get("data_offsets").and_then(Value::as_array).unwrap();
+            let offset_start = offsets[0].as_u64().unwrap();
+            let offset_end = offsets[1].as_u64().unwrap();
+            let offset_diff = offset_end - offset_start;
+            Layer{
+                name: name.to_string(),
+                offset_start: offset_start,
+                offset_end: offset_end,
+                size: offset_diff
+            }
+        })
+        .collect();
+
+    layers.sort_by(|a: &Layer, b: &Layer| {
+        b.size.cmp(&a.size)
+    });
+
+    println!("{:?}", layers);
 
     let sty_main = ProgressStyle::with_template("[{elapsed_precise}] {bar:40.green/yellow} {pos:>4}/{len:4}").unwrap();
     let sty_aux = ProgressStyle::with_template(
@@ -171,38 +213,34 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
     mp.add(main_bar);
 
     // Process the header entries in parallel
-    // TODO: Sort by offset diff descending, so we don't get stuck downloading large tensors at the end
-    let processed_entries: Vec<(String, Value)> = header_entries
+    let processed_entries: Vec<(String, Value)> = layers
         .par_iter()
-        .filter_map(|(tensor_name, tensor_metadata)| {
-            if *tensor_name == "__metadata__" {
-                None
-            } else {
-                // TODO: dedupe this
-                let offsets = tensor_metadata.get("data_offsets").and_then(Value::as_array)?;
-                let offset_start = offsets[0].as_u64()?;
-                let offset_end = offsets[1].as_u64()?;
-                let offset_diff = offset_end - offset_start;
-                // Create the progress bar based on the length
-                let pb = mp.add(ProgressBar::new(offset_diff));
-                pb.set_style(sty_aux.clone());
-                pb.enable_steady_tick(Duration::from_millis(200));
-                pb.set_message(format!("{}", tensor_name));
+        .filter_map(|layer| {
+            // Create the progress bar based on the length
+            let pb = mp.add(ProgressBar::new(layer.size));
+            pb.set_style(sty_aux.clone());
+            pb.enable_steady_tick(Duration::from_millis(200));
+            pb.set_message(format!("{}", layer.name));
 
-                // Download the tensor
-                // println!("{}: Downloading {}...", model_id, tensor_name);
-                let tensor = download::download_tensor(url, offset_start, offset_end, Some(pb.clone())).unwrap(); // Handle unwrap better
-                // Hash the tensor
-                let hash = hash::sha256_hash(&tensor);
-                // Put that in the results
-                let tensor_result = json!({
-                    "data_offsets": offsets,
-                    "hash": hash
-                });
-                pb.finish_and_clear();
-                main_bar_clone.inc(1);
-                Some((tensor_name.to_string(), tensor_result))
-            }
+            // Download the tensor
+            // println!("{}: Downloading {}...", model_id, tensor_name);
+            let tensor = download::download_tensor(
+                url,
+                layer.offset_start,
+                layer.offset_end,
+                Some(pb.clone())
+            ).unwrap(); // Handle unwrap better
+            // Hash the tensor
+            let hash = hash::sha256_hash(&tensor);
+            // Put that in the results
+            let tensor_result = json!({
+                "data_offsets": vec![layer.offset_start, layer.offset_end],
+                "hash": hash
+            });
+            pb.finish_and_clear();
+            main_bar_clone.inc(1);
+            Some((layer.name.to_string(), tensor_result))
+        
         })
         .collect();
     main_bar_clone.finish();
