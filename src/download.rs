@@ -1,9 +1,15 @@
-use indicatif::ProgressBar;
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
+use rayon::iter::ParallelIterator;
 use reqwest::{blocking::Client, Error};
 use serde_json::Value;
 use std::fs::{self, metadata, File};
 use std::io::prelude::*;
 use std::path::PathBuf;
+use std::time::Duration;
+
+use rayon::prelude::*;
+
+use crate::Layer;
 
 
 pub fn get_download_url_from_model_id(model_id: &str, file_name: &str) -> String {
@@ -130,6 +136,67 @@ pub fn download_full_safetensors_file(url: &str, storage_dir: &str) {
     }
 }
 
+pub fn par_download_layers(header: Value, url: String, mp: MultiProgress) -> impl ParallelIterator<Item = (Layer, Vec<u8>)> {
+    // Setup spinners
+    let sty_aux = ProgressStyle::with_template(
+        "[{elapsed_precise}] {bar:20.cyan/blue} {pos:>8}/{len:8}B {msg}",
+    )
+        .unwrap()
+        .progress_chars("##-");
+    
+    
+    // Iterate over each tensor and download it
+    let layers: Vec<Layer> = header
+        .as_object()
+        .unwrap()
+        .iter()
+        .filter_map(|data| {
+            if data.0 != "__metadata__" {
+                Some(data)
+            } else {
+                None
+            }
+        })
+        .map(|(name, metadata)| {
+            let offsets = metadata.get("data_offsets").and_then(Value::as_array).unwrap();
+            let offset_start = offsets[0].as_u64().unwrap();
+            let offset_end = offsets[1].as_u64().unwrap();
+            let offset_diff = offset_end - offset_start;
+            Layer{
+                name: name.to_string(),
+                offset_start: offset_start,
+                offset_end: offset_end,
+                size: offset_diff
+            }
+        })
+        .collect();
+
+    let mut sorted_layers = layers.clone();
+    sorted_layers.sort_by(|a: &Layer, b: &Layer| {
+        b.size.cmp(&a.size)
+    });
+
+    sorted_layers
+        .into_par_iter()
+        .map(move |layer| {
+            let pb = mp.add(ProgressBar::new(layer.size));
+            pb.set_style(sty_aux.clone());
+            pb.enable_steady_tick(Duration::from_millis(200));
+            pb.set_message(format!("{}", layer.name));
+
+            // Download the tensor
+            // println!("{}: Downloading {}...", model_id, tensor_name);
+            let tensor: Vec<u8> = download_tensor(
+                &url,
+                layer.offset_start,
+                layer.offset_end,
+                Some(pb.clone())
+            ).unwrap(); // Handle unwrap better
+            pb.finish_and_clear();
+            (layer.clone(), tensor)
+        })
+}
+
 fn file_exists(path: &PathBuf) -> bool {
     if let Ok(metadata) = metadata(path) {
         metadata.is_file()
@@ -164,7 +231,7 @@ fn get_u64_from_u8_vec(bytes: Vec<u8>) -> u64 {
     u64::from_le_bytes(b)
 }
 
-pub fn download_tensor(url: &str, offset_start: u64, offset_end: u64, pb: Option<ProgressBar>) -> Result<Vec<u8>, Error> {
+fn download_tensor(url: &str, offset_start: u64, offset_end: u64, pb: Option<ProgressBar>) -> Result<Vec<u8>, Error> {
     let offset_diff = offset_end - offset_start;
     let byte_count = offset_diff;
 

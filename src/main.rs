@@ -1,13 +1,12 @@
 use std::env;
 use std::fs::{self, File};
 use std::io::Read;
-use std::time::Duration;
 
 use clap::{Parser, Subcommand};
 
+use rayon::iter::ParallelIterator;
 use serde_json::{json, Map, Value};
 
-use rayon::prelude::*;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
 mod download;
@@ -176,7 +175,7 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
     let mp = MultiProgress::new();
     mp.add(main_bar);
 
-    let layer_names_and_tensors: Vec<(Layer, Vec<u8>, String)> = par_download_layers(
+    let layer_names_and_tensors: Vec<(Layer, Vec<u8>, String)> = download::par_download_layers(
         header, url, mp
     )
         .map(|(layer, tensor)| {
@@ -198,67 +197,6 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
 
 
     result_obj
-}
-
-fn par_download_layers(header: Value, url: String, mp: MultiProgress) -> impl ParallelIterator<Item = (Layer, Vec<u8>)> {
-    // Setup spinners
-    let sty_aux = ProgressStyle::with_template(
-        "[{elapsed_precise}] {bar:20.cyan/blue} {pos:>8}/{len:8}B {msg}",
-    )
-        .unwrap()
-        .progress_chars("##-");
-    
-    
-    // Iterate over each tensor and download it
-    let layers: Vec<Layer> = header
-        .as_object()
-        .unwrap()
-        .iter()
-        .filter_map(|data| {
-            if data.0 != "__metadata__" {
-                Some(data)
-            } else {
-                None
-            }
-        })
-        .map(|(name, metadata)| {
-            let offsets = metadata.get("data_offsets").and_then(Value::as_array).unwrap();
-            let offset_start = offsets[0].as_u64().unwrap();
-            let offset_end = offsets[1].as_u64().unwrap();
-            let offset_diff = offset_end - offset_start;
-            Layer{
-                name: name.to_string(),
-                offset_start: offset_start,
-                offset_end: offset_end,
-                size: offset_diff
-            }
-        })
-        .collect();
-
-    let mut sorted_layers = layers.clone();
-    sorted_layers.sort_by(|a: &Layer, b: &Layer| {
-        b.size.cmp(&a.size)
-    });
-
-    sorted_layers
-        .into_par_iter()
-        .map(move |layer| {
-            let pb = mp.add(ProgressBar::new(layer.size));
-            pb.set_style(sty_aux.clone());
-            pb.enable_steady_tick(Duration::from_millis(200));
-            pb.set_message(format!("{}", layer.name));
-
-            // Download the tensor
-            // println!("{}: Downloading {}...", model_id, tensor_name);
-            let tensor: Vec<u8> = download::download_tensor(
-                &url,
-                layer.offset_start,
-                layer.offset_end,
-                Some(pb.clone())
-            ).unwrap(); // Handle unwrap better
-            pb.finish_and_clear();
-            (layer.clone(), tensor)
-        })
 }
 
 fn get_hashes_file_dir_and_path(model_account: &str, model_name: &str) -> (String, String) {
