@@ -95254,9 +95254,6 @@
   "kitty528/Lyric-generator": [
     "model.safetensors"
   ],
-  "BanglaLLM/bangla-llama-7b-base-v0.1": [
-    "adapter_model.safetensors"
-  ],
   "rldxyz/helloworld": [
     "model-00001-of-00003.safetensors",
     "model-00002-of-00003.safetensors",
@@ -95395,10 +95392,6 @@
   ],
   "keloniton/test1": [
     "model.safetensors"
-  ],
-  "davibelo/autotrain-vicuna-valendo": [
-    "adapter_model.safetensors",
-    "checkpoint-27/adapter_model.safetensors"
   ],
   "Kamaljp/gpt2-wiki": [
     "model.safetensors"
@@ -95577,12 +95570,6 @@
     "model-00015-of-00015.safetensors"
   ],
   "hiiamsid/mistral_8k_epoch_4_classification": [
-    "model-00001-of-00003.safetensors",
-    "model-00002-of-00003.safetensors",
-    "model-00003-of-00003.safetensors"
-  ],
-  "karawalla/aqmodel_20240202": [
-    "adapter_model.safetensors",
     "model-00001-of-00003.safetensors",
     "model-00002-of-00003.safetensors",
     "model-00003-of-00003.safetensors"
