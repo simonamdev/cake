@@ -71,7 +71,7 @@ fn main() {
             let mut i = 0;
             for (model_id, file_names) in json.as_object().unwrap() {
                 i += 1;
-                if i < 705 {
+                if i < 748 {
                     // Update this as we fix issues
                     continue;
                 }
@@ -160,106 +160,55 @@ struct Layer {
 }
 
 fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Value> {
-    let url = &download::get_download_url_from_model_id(model_id, file_name);
+    // Get the header of the model
+    let url = download::get_download_url_from_model_id(model_id, file_name);
+    let (header, _) = download::download_safetensors_header(&url);
 
-    let (header, _) = download::download_safetensors_header(url);
-
-    // Iterate over each tensor, download it and hash the layer
-    let mut layers: Vec<Layer> = header
-        .as_object()
-        .unwrap()
-        .iter()
-        .filter_map(|data| {
-            if data.0 != "__metadata__" {
-                Some(data)
-            } else {
-                None
-            }
-        })
-        .map(|(name, metadata)| {
-            let offsets = metadata.get("data_offsets").and_then(Value::as_array).unwrap();
-            let offset_start = offsets[0].as_u64().unwrap();
-            let offset_end = offsets[1].as_u64().unwrap();
-            let offset_diff = offset_end - offset_start;
-            Layer{
-                name: name.to_string(),
-                offset_start: offset_start,
-                offset_end: offset_end,
-                size: offset_diff
-            }
-        })
-        .collect();
-
-    layers.sort_by(|a: &Layer, b: &Layer| {
-        b.size.cmp(&a.size)
-    });
-
-    println!("{:?}", layers);
-
-    let sty_main = ProgressStyle::with_template("[{elapsed_precise}] {bar:40.green/yellow} {pos:>4}/{len:4}").unwrap();
-    let sty_aux = ProgressStyle::with_template(
-        "[{elapsed_precise}] {bar:20.cyan/blue} {pos:>8}/{len:8}B {msg}",
+    // Setup the progress bars
+    let sty_main = ProgressStyle::with_template(
+        "[{elapsed_precise}] {bar:40.green/yellow} {pos:>4}/{len:4}"
     )
-    .unwrap()
-    .progress_chars("##-");
+        .unwrap();
 
-    // - 1 to remove the metadata key
-    let main_bar = ProgressBar::new(layers.len() as u64);
+    let main_bar = ProgressBar::new(header.as_object().unwrap().len() as u64);
     main_bar.set_style(sty_main);
     let main_bar_clone = main_bar.clone();
     let mp = MultiProgress::new();
     mp.add(main_bar);
 
-    // Process the header entries in parallel
-    let processed_entries: Vec<(String, Value)> = layers
-        .par_iter()
-        .filter_map(|layer| {
-            // Create the progress bar based on the length
-            let pb = mp.add(ProgressBar::new(layer.size));
-            pb.set_style(sty_aux.clone());
-            pb.enable_steady_tick(Duration::from_millis(200));
-            pb.set_message(format!("{}", layer.name));
-
-            // Download the tensor
-            // println!("{}: Downloading {}...", model_id, tensor_name);
-            let tensor = download::download_tensor(
-                url,
-                layer.offset_start,
-                layer.offset_end,
-                Some(pb.clone())
-            ).unwrap(); // Handle unwrap better
-            // Hash the tensor
+    let layer_names_and_tensors: Vec<(Layer, Vec<u8>, String)> = par_download_layers(
+        header, url, mp
+    )
+        .map(|(layer, tensor)| {
             let hash = hash::sha256_hash(&tensor);
-            // Put that in the results
-            let tensor_result = json!({
-                "data_offsets": vec![layer.offset_start, layer.offset_end],
-                "hash": hash
-            });
-            pb.finish_and_clear();
             main_bar_clone.inc(1);
-            Some((layer.name.to_string(), tensor_result))
-        
+            (layer, tensor, hash)
         })
         .collect();
-    main_bar_clone.finish();
-    mp.clear().unwrap();
-
-
+    
     // Create a new map and insert processed entries
     let mut result_obj: Map<String, Value> = Map::new();
-    for (tensor_name, tensor_result) in processed_entries {
-        result_obj.insert(tensor_name, tensor_result);
+    for (layer, _, hash) in layer_names_and_tensors {
+        let tensor_result = json!({
+            "data_offsets": vec![layer.offset_start, layer.offset_end],
+            "hash": hash
+        });
+        result_obj.insert(layer.name, tensor_result);
     }
 
 
     result_obj
 }
 
-fn par_download_layers(model_id: &str, file_name: &str, pb: ProgressBar) -> impl ParallelIterator<Item = (String, Vec<u8>)> {
-    let url = download::get_download_url_from_model_id(model_id, file_name);
-
-    let (header, _) = download::download_safetensors_header(&url);
-
+fn par_download_layers(header: Value, url: String, mp: MultiProgress) -> impl ParallelIterator<Item = (Layer, Vec<u8>)> {
+    // Setup spinners
+    let sty_aux = ProgressStyle::with_template(
+        "[{elapsed_precise}] {bar:20.cyan/blue} {pos:>8}/{len:8}B {msg}",
+    )
+        .unwrap()
+        .progress_chars("##-");
+    
+    
     // Iterate over each tensor and download it
     let layers: Vec<Layer> = header
         .as_object()
@@ -294,6 +243,11 @@ fn par_download_layers(model_id: &str, file_name: &str, pb: ProgressBar) -> impl
     sorted_layers
         .into_par_iter()
         .map(move |layer| {
+            let pb = mp.add(ProgressBar::new(layer.size));
+            pb.set_style(sty_aux.clone());
+            pb.enable_steady_tick(Duration::from_millis(200));
+            pb.set_message(format!("{}", layer.name));
+
             // Download the tensor
             // println!("{}: Downloading {}...", model_id, tensor_name);
             let tensor: Vec<u8> = download::download_tensor(
@@ -303,7 +257,7 @@ fn par_download_layers(model_id: &str, file_name: &str, pb: ProgressBar) -> impl
                 Some(pb.clone())
             ).unwrap(); // Handle unwrap better
             pb.finish_and_clear();
-            (layer.name.to_string(), tensor)
+            (layer.clone(), tensor)
         })
 }
 
