@@ -56,7 +56,7 @@ fn main() {
             // Known issue: only works for models with a single file called "model.safetensors"
             let url = &download::get_download_url_from_model_id(model_id, "model.safetensors");
             let cache_folder: &str = "./cache";
-            download::download_full_safetensors_file(url, cache_folder);
+            download::download_safetensors_file(url, cache_folder);
             let target_file_path = "./test.safetensors";
             download::combine_cached_files_to_safetensors_file(cache_folder, target_file_path);
         }
@@ -176,7 +176,7 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
     mp.add(main_bar);
 
     let layer_names_and_tensors: Vec<(Layer, Vec<u8>, String)> = download::par_download_layers(
-        header, url, mp
+        header, url, None, mp
     )
         .map(|(layer, tensor)| {
             let hash = hash::sha256_hash(&tensor);

@@ -77,11 +77,12 @@ pub fn combine_cached_files_to_safetensors_file(cache_directory: &str, target_fi
     }
 }
 
-pub fn download_full_safetensors_file(url: &str, storage_dir: &str) {
+pub fn download_safetensors_file(url: &str, storage_dir: &str) {
     // First download the header to understand the file
     let (header, header_length) = download_safetensors_header(url);
 
     // Write the header to a file
+    // TODO: Move to its own function!
     let mut header_file_path = PathBuf::new();
     header_file_path.push(storage_dir);
     header_file_path.push("header.json");
@@ -96,6 +97,7 @@ pub fn download_full_safetensors_file(url: &str, storage_dir: &str) {
     header_file.flush().unwrap();
 
     // Write the header length to a file
+    // TODO! Move to its own function
     let mut header_length_path = PathBuf::new();
     header_length_path.push(storage_dir);
     header_length_path.push("header.length");
@@ -104,6 +106,31 @@ pub fn download_full_safetensors_file(url: &str, storage_dir: &str) {
         .write_all(format!("{}", header_length).as_bytes())
         .unwrap();
     header_length_file.flush().unwrap();
+
+    // Generate paths for every tensor
+    let tensor_names_and_paths: Vec<(String, PathBuf)> = header
+        .as_object()
+        .unwrap()
+        .iter()
+        .filter_map(|data| {
+            if data.0 != "__metadata__" {
+                Some(data)
+            } else {
+                None
+            }
+        })
+        .map(|(tensor_name, _)| {
+            let mut tensor_file_path = PathBuf::new();
+            tensor_file_path.push(storage_dir);
+            tensor_file_path.push(tensor_name);
+            (tensor_name.to_string(), tensor_file_path)
+        })
+        .filter_map(|data| {
+            match !file_exists(&data.1) {
+                true => Some(data),
+                false => None,
+            }
+        }).collect();
 
     for (key, value) in header.as_object().unwrap() {
         if key == "__metadata__" {
@@ -136,7 +163,7 @@ pub fn download_full_safetensors_file(url: &str, storage_dir: &str) {
     }
 }
 
-pub fn par_download_layers(header: Value, url: String, mp: MultiProgress) -> impl ParallelIterator<Item = (Layer, Vec<u8>)> {
+pub fn par_download_layers(header: Value, url: String, tensor_names_allow_list: Option<Vec<String>>, mp: MultiProgress) -> impl ParallelIterator<Item = (Layer, Vec<u8>)> {
     // Setup spinners
     let sty_aux = ProgressStyle::with_template(
         "[{elapsed_precise}] {bar:20.cyan/blue} {pos:>8}/{len:8}B {msg}",
@@ -144,15 +171,28 @@ pub fn par_download_layers(header: Value, url: String, mp: MultiProgress) -> imp
         .unwrap()
         .progress_chars("##-");
     
-    
     // Iterate over each tensor and download it
+    // Only download the layers in the allow list, if it is available
     let layers: Vec<Layer> = header
         .as_object()
         .unwrap()
         .iter()
+        // Skip the metadata key
         .filter_map(|data| {
             if data.0 != "__metadata__" {
                 Some(data)
+            } else {
+                None
+            }
+        })
+        // Skip tensors not in the allow list
+        .filter_map(|data| {
+            if tensor_names_allow_list.is_some() {
+                if tensor_names_allow_list.as_ref().unwrap().contains(data.0) {
+                    Some(data)
+                } else {
+                    None
+                }
             } else {
                 None
             }
