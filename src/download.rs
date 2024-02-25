@@ -22,9 +22,9 @@ pub fn get_download_url_from_model_id(model_id: &str, file_name: &str) -> String
     return url;
 }
 
-pub fn combine_cached_files_to_safetensors_file(cache_directory: &str, target_file_path: &str) {
+pub fn combine_cached_files_to_safetensors_file(storage_directory: &str, target_file_path: &str) {
     let mut header_file_path = PathBuf::new();
-    header_file_path.push(cache_directory);
+    header_file_path.push(storage_directory);
     header_file_path.push("header.json");
 
     let mut header_file = fs::File::open(header_file_path).unwrap();
@@ -68,7 +68,7 @@ pub fn combine_cached_files_to_safetensors_file(cache_directory: &str, target_fi
             }
 
             let mut tensor_file_cache_path = PathBuf::new();
-            tensor_file_cache_path.push(cache_directory);
+            tensor_file_cache_path.push(storage_directory);
             tensor_file_cache_path.push(key);
             let mut tensor_file = fs::File::open(tensor_file_cache_path).unwrap();
             let mut tensor_bytes: Vec<_> = Vec::new();
@@ -81,10 +81,10 @@ pub fn combine_cached_files_to_safetensors_file(cache_directory: &str, target_fi
 pub fn download_safetensors_file_by_model_id(model_id: &str) {
     // TODO: Support models with multiple files or files that aren't "model.safetensors"
     let url = &get_download_url_from_model_id(model_id, "model.safetensors");
-    let cache_folder: &str = "./cache";
-    download_safetensors_file(model_id, url, cache_folder);
+    let download_folder: &str = "./download";
+    download_safetensors_file(model_id, url, download_folder);
     let target_file_path = "./test.safetensors";
-    combine_cached_files_to_safetensors_file(cache_folder, target_file_path);
+    combine_cached_files_to_safetensors_file(download_folder, target_file_path);
 }
 
 // Limitation: This currently does NOT make use of the hashing of layers to dedupe storage
@@ -94,6 +94,7 @@ pub fn download_safetensors_file_by_model_id(model_id: &str) {
 // Ideally we download the hashes on demand from a "registry"
 pub fn download_safetensors_file(model_id: &str, url: &str, storage_dir: &str) {
     // First download the header to understand the file
+    println!("Retrieving header for {}", model_id);
     let (header, header_length) = download_safetensors_header(url);
 
     // Write the header to a file
@@ -127,7 +128,9 @@ pub fn download_safetensors_file(model_id: &str, url: &str, storage_dir: &str) {
     header_length_file.flush().unwrap();
 
     // Generate paths for every tensor
-    let tensor_names_and_paths: Vec<(String, PathBuf)> = header
+    // We will use this to not download tensors that are already downloaded
+    let mut tensor_name_to_path: HashMap<String, PathBuf> = HashMap::new();
+    header
         .as_object()
         .unwrap()
         .iter()
@@ -146,64 +149,44 @@ pub fn download_safetensors_file(model_id: &str, url: &str, storage_dir: &str) {
             (tensor_name.to_string(), tensor_file_path)
         })
         .filter_map(|data| {
+            // We only want the ones where the file does NOT exist yet
             match !file_exists(&data.1) {
                 true => Some(data),
                 false => None,
             }
-        }).collect();
-
-    let tensor_names_and_paths_clone = tensor_names_and_paths.clone();
-    // The way I've done it feels wasteful, but I'm sticking to it for now
-    let tensor_names: Vec<String> = tensor_names_and_paths
-        .into_iter()
-        .map(|(name, _path)| {
-            name
-        })
-        .collect();
+        }).for_each(|(name, path)| {
+            tensor_name_to_path.insert(name, path);
+        });
+    
+    let tensor_names_for_download: Vec<String> = tensor_name_to_path.keys().cloned().collect();
 
     // Setup the progress bars
+    // TODO: Dedupe this
     let sty_main = ProgressStyle::with_template(
         "[{elapsed_precise}] {bar:40.green/yellow} {pos:>4}/{len:4}"
     )
         .unwrap();
 
-    let main_bar = ProgressBar::new(header.as_object().unwrap().len() as u64);
+    let main_bar: ProgressBar = ProgressBar::new(tensor_names_for_download.len() as u64);
     main_bar.set_style(sty_main);
     let main_bar_clone = main_bar.clone();
     let mp = MultiProgress::new();
     mp.add(main_bar);
     
-    let layer_names_and_tensors: Vec<(Layer, Vec<u8>)> = par_download_layers(
-        header, url.to_string(), Some(tensor_names), mp
+    par_download_layers(
+        header, url.to_string(), Some(tensor_names_for_download), mp
     )
-        .map(|data| {
+        .for_each(|(layer, tensor)| {
+            // Write to file
+            let file_path = tensor_name_to_path.get(&layer.name).unwrap();
+            fs::create_dir_all(&file_path.parent().unwrap()).unwrap();
+            let mut file = File::create(file_path). unwrap();
+            file.write_all(&tensor).unwrap();
+            file.flush().unwrap();
+            // Increment the progress bar
+            // TODO: also add a new spinner indicating writing to file later
             main_bar_clone.inc(1);
-            data
-        })
-        .collect();
-
-    let mut layer_name_to_tensor: HashMap<String, Vec<u8>> = HashMap::new();
-    for (layer_name, tensor) in layer_names_and_tensors {
-        layer_name_to_tensor.insert(layer_name.name, tensor);
-    }
-
-    // TODO: Do this in parallel as layers are downloaded instead of separately!
-    for (name, file_path) in tensor_names_and_paths_clone {
-        let tensor = layer_name_to_tensor.get(&name);
-        match tensor {
-            Some(t) => {
-                // TODO: Add a progress spinenr to the multiprogress?
-                // Write the tensor to the file path
-                fs::create_dir_all(&file_path.parent().unwrap()).unwrap();
-                let mut file = File::create(file_path). unwrap();
-                file.write_all(t).unwrap();
-                file.flush().unwrap();
-            }
-            None => {
-                // Maybe display error message?
-            }
-        }
-    }
+        });
 }
 
 pub fn par_download_layers(header: Value, url: String, tensor_names_allow_list: Option<Vec<String>>, mp: MultiProgress) -> impl ParallelIterator<Item = (Layer, Vec<u8>)> {
