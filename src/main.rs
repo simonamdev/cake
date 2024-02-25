@@ -54,11 +54,7 @@ fn main() {
             // Known issue: using this will not create an equivalent file to that available on huggingface due to
             // differences in how the json header is formatted, however it will create a valid safetensors file
             // Known issue: only works for models with a single file called "model.safetensors"
-            let url = &download::get_download_url_from_model_id(model_id, "model.safetensors");
-            let cache_folder: &str = "./cache";
-            download::download_safetensors_file(url, cache_folder);
-            let target_file_path = "./test.safetensors";
-            download::combine_cached_files_to_safetensors_file(cache_folder, target_file_path);
+            download::download_safetensors_file_by_model_id(&model_id)
         }
         Some(Commands::CheckModels {  }) => {
             // Get the model ids and file names from the JSON file

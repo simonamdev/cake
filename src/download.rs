@@ -2,6 +2,7 @@ use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use rayon::iter::ParallelIterator;
 use reqwest::{blocking::Client, Error};
 use serde_json::Value;
+use std::collections::HashMap;
 use std::fs::{self, metadata, File};
 use std::io::prelude::*;
 use std::path::PathBuf;
@@ -45,7 +46,7 @@ pub fn combine_cached_files_to_safetensors_file(cache_directory: &str, target_fi
     println!("{:?}", header_bytes.len());
     // Write the header bytes
     output_file.write_all(&header_bytes).unwrap();
-    // Iterate through the tensors and write them
+    // Iterate through the tensors and write them to files
 
     let mut header: Value = serde_json::from_slice(&header_bytes).unwrap();
     if let Some(obj) = header.as_object_mut() {
@@ -77,7 +78,21 @@ pub fn combine_cached_files_to_safetensors_file(cache_directory: &str, target_fi
     }
 }
 
-pub fn download_safetensors_file(url: &str, storage_dir: &str) {
+pub fn download_safetensors_file_by_model_id(model_id: &str) {
+    // TODO: Support models with multiple files or files that aren't "model.safetensors"
+    let url = &get_download_url_from_model_id(model_id, "model.safetensors");
+    let cache_folder: &str = "./cache";
+    download_safetensors_file(model_id, url, cache_folder);
+    let target_file_path = "./test.safetensors";
+    combine_cached_files_to_safetensors_file(cache_folder, target_file_path);
+}
+
+// Limitation: This currently does NOT make use of the hashing of layers to dedupe storage
+// To do that, we would need to know the hashes in the model_id requested
+// and to store the bytes of each tensor in a file with the hash as the name
+// To do that, we could initially embed the hashes in the binary but that would be very large (200MB for 10% of HF textgen models)
+// Ideally we download the hashes on demand from a "registry"
+pub fn download_safetensors_file(model_id: &str, url: &str, storage_dir: &str) {
     // First download the header to understand the file
     let (header, header_length) = download_safetensors_header(url);
 
@@ -85,7 +100,9 @@ pub fn download_safetensors_file(url: &str, storage_dir: &str) {
     // TODO: Move to its own function!
     let mut header_file_path = PathBuf::new();
     header_file_path.push(storage_dir);
+    header_file_path.push(model_id);
     header_file_path.push("header.json");
+    fs::create_dir_all(&header_file_path.parent().unwrap()).unwrap();
     let mut header_file = File::create(header_file_path).unwrap();
     let mut header_buf = serde_json::to_string(&header).unwrap().into_bytes();
     // TAKEN DIRECTLY FROM SAFETENSORS -|
@@ -100,7 +117,9 @@ pub fn download_safetensors_file(url: &str, storage_dir: &str) {
     // TODO! Move to its own function
     let mut header_length_path = PathBuf::new();
     header_length_path.push(storage_dir);
+    header_length_path.push(model_id);
     header_length_path.push("header.length");
+    fs::create_dir_all(&header_length_path.parent().unwrap()).unwrap();
     let mut header_length_file = File::create(header_length_path).unwrap();
     header_length_file
         .write_all(format!("{}", header_length).as_bytes())
@@ -122,6 +141,7 @@ pub fn download_safetensors_file(url: &str, storage_dir: &str) {
         .map(|(tensor_name, _)| {
             let mut tensor_file_path = PathBuf::new();
             tensor_file_path.push(storage_dir);
+            tensor_file_path.push(model_id);
             tensor_file_path.push(tensor_name);
             (tensor_name.to_string(), tensor_file_path)
         })
@@ -132,34 +152,57 @@ pub fn download_safetensors_file(url: &str, storage_dir: &str) {
             }
         }).collect();
 
-    for (key, value) in header.as_object().unwrap() {
-        if key == "__metadata__" {
-            continue;
+    let tensor_names_and_paths_clone = tensor_names_and_paths.clone();
+    // The way I've done it feels wasteful, but I'm sticking to it for now
+    let tensor_names: Vec<String> = tensor_names_and_paths
+        .into_iter()
+        .map(|(name, _path)| {
+            name
+        })
+        .collect();
+
+    // Setup the progress bars
+    let sty_main = ProgressStyle::with_template(
+        "[{elapsed_precise}] {bar:40.green/yellow} {pos:>4}/{len:4}"
+    )
+        .unwrap();
+
+    let main_bar = ProgressBar::new(header.as_object().unwrap().len() as u64);
+    main_bar.set_style(sty_main);
+    let main_bar_clone = main_bar.clone();
+    let mp = MultiProgress::new();
+    mp.add(main_bar);
+    
+    let layer_names_and_tensors: Vec<(Layer, Vec<u8>)> = par_download_layers(
+        header, url.to_string(), Some(tensor_names), mp
+    )
+        .map(|data| {
+            main_bar_clone.inc(1);
+            data
+        })
+        .collect();
+
+    let mut layer_name_to_tensor: HashMap<String, Vec<u8>> = HashMap::new();
+    for (layer_name, tensor) in layer_names_and_tensors {
+        layer_name_to_tensor.insert(layer_name.name, tensor);
+    }
+
+    // TODO: Do this in parallel as layers are downloaded instead of separately!
+    for (name, file_path) in tensor_names_and_paths_clone {
+        let tensor = layer_name_to_tensor.get(&name);
+        match tensor {
+            Some(t) => {
+                // TODO: Add a progress spinenr to the multiprogress?
+                // Write the tensor to the file path
+                fs::create_dir_all(&file_path.parent().unwrap()).unwrap();
+                let mut file = File::create(file_path). unwrap();
+                file.write_all(t).unwrap();
+                file.flush().unwrap();
+            }
+            None => {
+                // Maybe display error message?
+            }
         }
-        // Here the key is the tensor name and the value is in the format:
-        // {"data_offsets":[1209081856,1217470464],"dtype":"F16","shape":[2048,2048]}
-        // println!("{} {}", key, value);
-        // If the file exists, skip it
-        let mut tensor_file_cache_path = PathBuf::new();
-        tensor_file_cache_path.push(storage_dir);
-        tensor_file_cache_path.push(key);
-        if file_exists(&tensor_file_cache_path) {
-            println!(
-                "{} already exists, skipping...",
-                tensor_file_cache_path.display()
-            );
-            continue;
-        }
-        let offsets = value.get("data_offsets").and_then(Value::as_array).unwrap();
-        let offset_start = offsets[0].as_u64().unwrap();
-        let offset_end = offsets[1].as_u64().unwrap();
-        // Download the tensor
-        let tensor = download_tensor(url, offset_start, offset_end, None).unwrap();
-        // Write the tensor to the cache dir file
-        let mut file = File::create(&tensor_file_cache_path).unwrap();
-        println!("Writing {} to {}...", key, tensor_file_cache_path.display());
-        file.write_all(&tensor).unwrap();
-        file.flush().unwrap();
     }
 }
 
