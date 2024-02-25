@@ -19,12 +19,13 @@ pub fn get_download_url_from_model_id(model_id: &str, file_name: &str) -> String
         model_id, file_name
     )
     .to_string();
-    return url;
+    url
 }
 
-pub fn combine_cached_files_to_safetensors_file(storage_directory: &str, target_file_path: &str) {
+pub fn combine_cached_files_to_safetensors_file(model_id: &str, storage_directory: &str, target_file_path: &str) {
     let mut header_file_path = PathBuf::new();
     header_file_path.push(storage_directory);
+    header_file_path.push(model_id);
     header_file_path.push("header.json");
 
     let mut header_file = fs::File::open(header_file_path).unwrap();
@@ -67,10 +68,11 @@ pub fn combine_cached_files_to_safetensors_file(storage_directory: &str, target_
                 continue;
             }
 
-            let mut tensor_file_cache_path = PathBuf::new();
-            tensor_file_cache_path.push(storage_directory);
-            tensor_file_cache_path.push(key);
-            let mut tensor_file = fs::File::open(tensor_file_cache_path).unwrap();
+            let mut tensor_file_path = PathBuf::new();
+            tensor_file_path.push(storage_directory);
+            tensor_file_path.push(model_id);
+            tensor_file_path.push(key);
+            let mut tensor_file = fs::File::open(tensor_file_path).unwrap();
             let mut tensor_bytes: Vec<_> = Vec::new();
             tensor_file.read_to_end(&mut tensor_bytes).unwrap();
             output_file.write_all(&tensor_bytes).unwrap();
@@ -84,7 +86,7 @@ pub fn download_safetensors_file_by_model_id(model_id: &str) {
     let download_folder: &str = "./download";
     download_safetensors_file(model_id, url, download_folder);
     let target_file_path = "./test.safetensors";
-    combine_cached_files_to_safetensors_file(download_folder, target_file_path);
+    combine_cached_files_to_safetensors_file(model_id, download_folder, target_file_path);
 }
 
 // Limitation: This currently does NOT make use of the hashing of layers to dedupe storage
