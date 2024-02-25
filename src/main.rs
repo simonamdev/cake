@@ -12,6 +12,7 @@ use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 mod download;
 mod hash;
 mod compare;
+mod export;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
