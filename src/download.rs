@@ -22,7 +22,9 @@ pub fn get_download_url_from_model_id(model_id: &str, file_name: &str) -> String
     url
 }
 
-pub fn combine_cached_files_to_safetensors_file(model_id: &str, storage_directory: &str, target_file_path: &str) {
+fn combine_cached_files_to_safetensors_file(model_id: &str, storage_directory: &str, target_file_path: &str) {
+    println!("Exporting {} to {}...", model_id, target_file_path);
+
     let mut header_file_path = PathBuf::new();
     header_file_path.push(storage_directory);
     header_file_path.push(model_id);
@@ -50,6 +52,16 @@ pub fn combine_cached_files_to_safetensors_file(model_id: &str, storage_director
     // Iterate through the tensors and write them to files
 
     let mut header: Value = serde_json::from_slice(&header_bytes).unwrap();
+    let tensor_count = header.as_object().unwrap().len();
+
+    let sty_main = ProgressStyle::with_template(
+        "[{elapsed_precise}] {bar:40.green/yellow} {pos:>4}/{len:4} {msg}"
+    )
+        .unwrap();
+
+    let main_bar: ProgressBar = ProgressBar::new(tensor_count as u64);
+    main_bar.set_style(sty_main);
+
     if let Some(obj) = header.as_object_mut() {
         // Sort the JSON object by the first index of the "data_offsets" array
         if let Some(data_offsets) = obj.get_mut("data_offsets") {
@@ -62,11 +74,12 @@ pub fn combine_cached_files_to_safetensors_file(model_id: &str, storage_director
             }
         }
 
-        for (key, value) in obj {
-            println!("Key: {}, Value: {}", key, value);
+        for (key, _value) in obj {
+            // println!("Key: {}, Value: {}", key, value);
             if key == "__metadata__" {
                 continue;
             }
+            main_bar.set_message(format!("Writing {}", key));
 
             let mut tensor_file_path = PathBuf::new();
             tensor_file_path.push(storage_directory);
@@ -76,8 +89,11 @@ pub fn combine_cached_files_to_safetensors_file(model_id: &str, storage_director
             let mut tensor_bytes: Vec<_> = Vec::new();
             tensor_file.read_to_end(&mut tensor_bytes).unwrap();
             output_file.write_all(&tensor_bytes).unwrap();
+
+            main_bar.inc(1);
         }
     }
+    main_bar.finish_with_message("Export complete");
 }
 
 pub fn download_safetensors_file_by_model_id(model_id: &str) {
