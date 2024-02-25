@@ -51,8 +51,22 @@ fn combine_cached_files_to_safetensors_file(model_id: &str, storage_directory: &
     output_file.write_all(&header_bytes).unwrap();
     // Iterate through the tensors and write them to files
 
-    let mut header: Value = serde_json::from_slice(&header_bytes).unwrap();
-    let tensor_count = header.as_object().unwrap().len();
+    let header: Value = serde_json::from_slice(&header_bytes).unwrap();
+    let tensor_names: Vec<String> = header
+        .as_object()
+        .unwrap()
+        .keys()
+        .filter_map(|key| {
+            if key != "__metadata__" {
+                Some(key)
+            } else {
+                None
+            }
+        })
+        .cloned()
+        .collect();
+        
+    let tensor_count = tensor_names.len();
 
     let sty_main = ProgressStyle::with_template(
         "[{elapsed_precise}] {bar:40.green/yellow} {pos:>4}/{len:4} {msg}"
@@ -62,37 +76,21 @@ fn combine_cached_files_to_safetensors_file(model_id: &str, storage_directory: &
     let main_bar: ProgressBar = ProgressBar::new(tensor_count as u64);
     main_bar.set_style(sty_main);
 
-    if let Some(obj) = header.as_object_mut() {
-        // Sort the JSON object by the first index of the "data_offsets" array
-        if let Some(data_offsets) = obj.get_mut("data_offsets") {
-            if let Some(data_offsets_array) = data_offsets.as_array_mut() {
-                data_offsets_array.sort_by(|a, b| {
-                    let a_first = a[0].as_i64().unwrap_or(i64::MAX);
-                    let b_first = b[0].as_i64().unwrap_or(i64::MAX);
-                    a_first.cmp(&b_first)
-                });
-            }
-        }
+    for tensor_name in tensor_names {
+        main_bar.set_message(format!("Writing {}", tensor_name));
 
-        for (key, _value) in obj {
-            // println!("Key: {}, Value: {}", key, value);
-            if key == "__metadata__" {
-                continue;
-            }
-            main_bar.set_message(format!("Writing {}", key));
+        let mut tensor_file_path = PathBuf::new();
+        tensor_file_path.push(storage_directory);
+        tensor_file_path.push(model_id);
+        tensor_file_path.push(tensor_name);
+        let mut tensor_file = fs::File::open(tensor_file_path).unwrap();
+        let mut tensor_bytes: Vec<_> = Vec::new();
+        tensor_file.read_to_end(&mut tensor_bytes).unwrap();
+        output_file.write_all(&tensor_bytes).unwrap();
 
-            let mut tensor_file_path = PathBuf::new();
-            tensor_file_path.push(storage_directory);
-            tensor_file_path.push(model_id);
-            tensor_file_path.push(key);
-            let mut tensor_file = fs::File::open(tensor_file_path).unwrap();
-            let mut tensor_bytes: Vec<_> = Vec::new();
-            tensor_file.read_to_end(&mut tensor_bytes).unwrap();
-            output_file.write_all(&tensor_bytes).unwrap();
-
-            main_bar.inc(1);
-        }
+        main_bar.inc(1);
     }
+
     main_bar.finish_with_message("Export complete");
 }
 
