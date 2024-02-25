@@ -137,14 +137,6 @@ fn run_hashing_experiment() {
         let file = File::create(hashes_file_path.1).unwrap();
         serde_json::to_writer_pretty(file, &hashed_layers_result).unwrap();
     }
-
-
-    // Download layers and hash each one
-    let model_id = "KoboldAI/fairseq-dense-1.3B";
-    let file_name = "model.safetensors";
-
-    let hashed_layers_result = download_and_hash_layers(model_id, file_name);
-    println!("{:#?}", hashed_layers_result);
 }
 
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd, Clone)]
