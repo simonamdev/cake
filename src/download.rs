@@ -165,7 +165,7 @@ pub fn par_download_layers(header: Value, url: String, tensor_names_allow_list: 
                     None
                 }
             } else {
-                None
+                Some(data)
             }
         })
         .map(|(name, metadata)| {

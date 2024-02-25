@@ -132,9 +132,11 @@ fn run_hashing_experiment() {
             println!("{} skipped as hashes file already exists", model_id);
             continue
         }
+        println!("Downloading model layers from {}...", safetensors_file_name);
         let hashed_layers_result = download_and_hash_layers(model_id, safetensors_file_name);
         fs::create_dir_all(hashes_file_path.0).unwrap();
         let file = File::create(hashes_file_path.1).unwrap();
+        println!("Outputting hash results...");
         serde_json::to_writer_pretty(file, &hashed_layers_result).unwrap();
     }
 }
@@ -183,7 +185,6 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
         });
         result_obj.insert(layer.name, tensor_result);
     }
-
 
     result_obj
 }
