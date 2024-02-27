@@ -10,9 +10,8 @@ use std::time::Duration;
 
 use rayon::prelude::*;
 
-use crate::Layer;
 use crate::export;
-
+use crate::Layer;
 
 pub fn get_download_url_from_model_id(model_id: &str, file_name: &str) -> String {
     let url = format!(
@@ -99,49 +98,53 @@ pub fn download_safetensors_file(model_id: &str, url: &str, storage_dir: &str) {
                 true => Some(data),
                 false => None,
             }
-        }).for_each(|(name, path)| {
+        })
+        .for_each(|(name, path)| {
             tensor_name_to_path.insert(name, path);
         });
-    
+
     let tensor_names_for_download: Vec<String> = tensor_name_to_path.keys().cloned().collect();
 
     // Setup the progress bars
     // TODO: Dedupe this
-    let sty_main = ProgressStyle::with_template(
-        "[{elapsed_precise}] {bar:40.green/yellow} {pos:>4}/{len:4}"
-    )
-        .unwrap();
+    let sty_main =
+        ProgressStyle::with_template("[{elapsed_precise}] {bar:40.green/yellow} {pos:>4}/{len:4}")
+            .unwrap();
 
     let main_bar: ProgressBar = ProgressBar::new(tensor_names_for_download.len() as u64);
     main_bar.set_style(sty_main);
     let main_bar_clone = main_bar.clone();
     let mp = MultiProgress::new();
     mp.add(main_bar);
-    
-    par_download_layers(
-        header, url.to_string(), Some(tensor_names_for_download), mp
-    )
-        .for_each(|(layer, tensor)| {
+
+    par_download_layers(header, url.to_string(), Some(tensor_names_for_download), mp).for_each(
+        |(layer, tensor)| {
             // Write to file
             let file_path = tensor_name_to_path.get(&layer.name).unwrap();
             fs::create_dir_all(&file_path.parent().unwrap()).unwrap();
-            let mut file = File::create(file_path). unwrap();
+            let mut file = File::create(file_path).unwrap();
             file.write_all(&tensor).unwrap();
             file.flush().unwrap();
             // Increment the progress bar
             // TODO: also add a new spinner indicating writing to file later
             main_bar_clone.inc(1);
-        });
+        },
+    );
 }
 
-pub fn par_download_layers(header: Value, url: String, tensor_names_allow_list: Option<Vec<String>>, mp: MultiProgress) -> impl ParallelIterator<Item = (Layer, Vec<u8>)> {
+pub fn par_download_layers(
+    header: Value,
+    url: String,
+    tensor_names_allow_list: Option<Vec<String>>,
+    mp: MultiProgress,
+) -> impl ParallelIterator<Item = (Layer, Vec<u8>)> {
     // Setup spinners
     let sty_aux = ProgressStyle::with_template(
         "[{elapsed_precise}] {bar:20.cyan/blue} {pos:>8}/{len:8}B {msg}",
     )
-        .unwrap()
-        .progress_chars("##-");
-    
+    .unwrap()
+    .progress_chars("##-");
+
     // Iterate over each tensor and download it
     // Only download the layers in the allow list, if it is available
     let layers: Vec<Layer> = header
@@ -169,43 +172,38 @@ pub fn par_download_layers(header: Value, url: String, tensor_names_allow_list: 
             }
         })
         .map(|(name, metadata)| {
-            let offsets = metadata.get("data_offsets").and_then(Value::as_array).unwrap();
+            let offsets = metadata
+                .get("data_offsets")
+                .and_then(Value::as_array)
+                .unwrap();
             let offset_start = offsets[0].as_u64().unwrap();
             let offset_end = offsets[1].as_u64().unwrap();
             let offset_diff = offset_end - offset_start;
-            Layer{
+            Layer {
                 name: name.to_string(),
                 offset_start: offset_start,
                 offset_end: offset_end,
-                size: offset_diff
+                size: offset_diff,
             }
         })
         .collect();
 
     let mut sorted_layers = layers.clone();
-    sorted_layers.sort_by(|a: &Layer, b: &Layer| {
-        b.size.cmp(&a.size)
-    });
+    sorted_layers.sort_by(|a: &Layer, b: &Layer| b.size.cmp(&a.size));
 
-    sorted_layers
-        .into_par_iter()
-        .map(move |layer| {
-            let pb = mp.add(ProgressBar::new(layer.size));
-            pb.set_style(sty_aux.clone());
-            pb.enable_steady_tick(Duration::from_millis(200));
-            pb.set_message(format!("{}", layer.name));
+    sorted_layers.into_par_iter().map(move |layer| {
+        let pb = mp.add(ProgressBar::new(layer.size));
+        pb.set_style(sty_aux.clone());
+        pb.enable_steady_tick(Duration::from_millis(200));
+        pb.set_message(format!("{}", layer.name));
 
-            // Download the tensor
-            // println!("{}: Downloading {}...", model_id, tensor_name);
-            let tensor: Vec<u8> = download_tensor(
-                &url,
-                layer.offset_start,
-                layer.offset_end,
-                Some(pb.clone())
-            ).unwrap(); // Handle unwrap better
-            pb.finish_and_clear();
-            (layer.clone(), tensor)
-        })
+        // Download the tensor
+        // println!("{}: Downloading {}...", model_id, tensor_name);
+        let tensor: Vec<u8> =
+            download_tensor(&url, layer.offset_start, layer.offset_end, Some(pb.clone())).unwrap(); // Handle unwrap better
+        pb.finish_and_clear();
+        (layer.clone(), tensor)
+    })
 }
 
 fn file_exists(path: &PathBuf) -> bool {
@@ -242,7 +240,12 @@ fn get_u64_from_u8_vec(bytes: Vec<u8>) -> u64 {
     u64::from_le_bytes(b)
 }
 
-fn download_tensor(url: &str, offset_start: u64, offset_end: u64, pb: Option<ProgressBar>) -> Result<Vec<u8>, Error> {
+fn download_tensor(
+    url: &str,
+    offset_start: u64,
+    offset_end: u64,
+    pb: Option<ProgressBar>,
+) -> Result<Vec<u8>, Error> {
     let offset_diff = offset_end - offset_start;
     let byte_count = offset_diff;
 
@@ -255,10 +258,10 @@ fn download_part_of_file(
     url: &str,
     byte_index: u64,
     number_of_bytes: u64,
-    pb: Option<ProgressBar>
+    pb: Option<ProgressBar>,
 ) -> Result<Vec<u8>, Error> {
     let chunk_size = 1024; // 1KB
-    
+
     // Range is exclusive. Example: 0-499 is byte 0 to byte 499, so 500 bytes in total
     let range_header_value = format!("bytes={}-{}", byte_index, byte_index + number_of_bytes - 1);
     let client = Client::new();
@@ -281,7 +284,7 @@ fn download_part_of_file(
         if chunk_size == 0 {
             break; // End of stream
         }
-        
+
         position += chunk_size;
         buffer.extend_from_slice(&chunk[..chunk_size]);
         if let Some(pb) = &pb {

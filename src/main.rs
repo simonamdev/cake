@@ -9,10 +9,10 @@ use serde_json::{json, Map, Value};
 
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
-mod download;
-mod hash;
 mod compare;
+mod download;
 mod export;
+mod hash;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -37,7 +37,7 @@ enum Commands {
     Download {
         #[arg(long)]
         model_id: String,
-    }
+    },
 }
 
 fn main() {
@@ -57,7 +57,7 @@ fn main() {
             // Known issue: only works for models with a single file called "model.safetensors"
             download::download_safetensors_file_by_model_id(&model_id)
         }
-        Some(Commands::CheckModels {  }) => {
+        Some(Commands::CheckModels {}) => {
             // Get the model ids and file names from the JSON file
             let mut file = File::open("safetensor-models-text-gen.json").unwrap();
             let mut models_json_str = String::new();
@@ -72,20 +72,27 @@ fn main() {
                     continue;
                 }
                 for file_name in file_names.as_array().unwrap() {
-                    println!("{}/{}: {} ({})", i, json.as_object().unwrap().len(), model_id, file_name);
-                    let model_parts: Vec<&str> = model_id.split("/").collect();
-                    let hashes_file_path = get_hashes_file_dir_and_path(
-                        model_parts[0],
-                        model_parts[1]
+                    println!(
+                        "{}/{}: {} ({})",
+                        i,
+                        json.as_object().unwrap().len(),
+                        model_id,
+                        file_name
                     );
+                    let model_parts: Vec<&str> = model_id.split("/").collect();
+                    let hashes_file_path =
+                        get_hashes_file_dir_and_path(model_parts[0], model_parts[1]);
                     let hashes_file_path_clone = hashes_file_path.1.clone();
                     let hashes_file_exists = fs::metadata(hashes_file_path_clone).is_ok();
                     if hashes_file_exists {
                         println!("{} skipped as hashes file already exists", model_id);
-                        continue
+                        continue;
                     }
                     // Download just the header and try to parse it
-                    let url = &download::get_download_url_from_model_id(model_id, file_name.as_str().unwrap());
+                    let url = &download::get_download_url_from_model_id(
+                        model_id,
+                        file_name.as_str().unwrap(),
+                    );
                     download::download_safetensors_header(url);
                 }
             }
@@ -108,29 +115,38 @@ fn run_hashing_experiment() {
         // For now, handle only models with a single file, for simplicity
         // TODO: Handle multi file models!
         if file_names.as_array().unwrap().len() > 1 {
-            println!("{} skipped due to multiple safetensors files. (temporary limitation)", model_id);
-            continue
+            println!(
+                "{} skipped due to multiple safetensors files. (temporary limitation)",
+                model_id
+            );
+            continue;
         }
         if file_names.as_array().unwrap().len() == 0 {
             println!("{} skipped due to no files", model_id);
-            continue
+            continue;
         }
-        let safetensors_file_name = file_names.as_array().unwrap().get(0).unwrap().as_str().unwrap();
+        let safetensors_file_name = file_names
+            .as_array()
+            .unwrap()
+            .get(0)
+            .unwrap()
+            .as_str()
+            .unwrap();
         // For now skip adapter models as they are not being parsed correctly
         if safetensors_file_name.contains("adapter_model") {
-            println!("{} skipped due to being an adapter model file (temporary limitation)", model_id);
+            println!(
+                "{} skipped due to being an adapter model file (temporary limitation)",
+                model_id
+            );
             continue;
         }
         let model_parts: Vec<&str> = model_id.split("/").collect();
-        let hashes_file_path = get_hashes_file_dir_and_path(
-            model_parts[0],
-            model_parts[1]
-        );
+        let hashes_file_path = get_hashes_file_dir_and_path(model_parts[0], model_parts[1]);
         let hashes_file_path_clone = hashes_file_path.1.clone();
         let hashes_file_exists = fs::metadata(hashes_file_path_clone).is_ok();
         if hashes_file_exists {
             println!("{} skipped as hashes file already exists", model_id);
-            continue
+            continue;
         }
         println!("Downloading model layers from {}...", safetensors_file_name);
         let hashed_layers_result = download_and_hash_layers(model_id, safetensors_file_name);
@@ -146,7 +162,7 @@ struct Layer {
     name: String,
     offset_start: u64,
     offset_end: u64,
-    size: u64
+    size: u64,
 }
 
 fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Value> {
@@ -155,10 +171,9 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
     let (header, _) = download::download_safetensors_header(&url);
 
     // Setup the progress bars
-    let sty_main = ProgressStyle::with_template(
-        "[{elapsed_precise}] {bar:40.green/yellow} {pos:>4}/{len:4}"
-    )
-        .unwrap();
+    let sty_main =
+        ProgressStyle::with_template("[{elapsed_precise}] {bar:40.green/yellow} {pos:>4}/{len:4}")
+            .unwrap();
 
     let main_bar = ProgressBar::new(header.as_object().unwrap().len() as u64);
     main_bar.set_style(sty_main);
@@ -166,16 +181,15 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
     let mp = MultiProgress::new();
     mp.add(main_bar);
 
-    let layer_names_and_tensors: Vec<(Layer, Vec<u8>, String)> = download::par_download_layers(
-        header, url, None, mp
-    )
-        .map(|(layer, tensor)| {
-            let hash = hash::sha256_hash(&tensor);
-            main_bar_clone.inc(1);
-            (layer, tensor, hash)
-        })
-        .collect();
-    
+    let layer_names_and_tensors: Vec<(Layer, Vec<u8>, String)> =
+        download::par_download_layers(header, url, None, mp)
+            .map(|(layer, tensor)| {
+                let hash = hash::sha256_hash(&tensor);
+                main_bar_clone.inc(1);
+                (layer, tensor, hash)
+            })
+            .collect();
+
     // Create a new map and insert processed entries
     let mut result_obj: Map<String, Value> = Map::new();
     for (layer, _, hash) in layer_names_and_tensors {
@@ -190,7 +204,15 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
 }
 
 fn get_hashes_file_dir_and_path(model_account: &str, model_name: &str) -> (String, String) {
-    let abs_dir: String =  env::current_dir().unwrap().to_string_lossy().into_owned().clone() + &"/results/".to_owned() + &model_account + "/" + &model_name;
+    let abs_dir: String = env::current_dir()
+        .unwrap()
+        .to_string_lossy()
+        .into_owned()
+        .clone()
+        + &"/results/".to_owned()
+        + &model_account
+        + "/"
+        + &model_name;
     let target_file_path = abs_dir.to_owned() + "/hashes.json";
 
     (abs_dir, target_file_path)
