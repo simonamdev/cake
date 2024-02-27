@@ -27,6 +27,7 @@ Leveraging the [hugginface/safetensors](https://huggingface.co/docs/safetensors/
 
 [] Version 0.2
 * Setup a TUI interface to enable listing / searching of available models
+* Make better CLI arguments (to specify storage folder for example)
 
 [] Version 0.3:
 * Setup a server component that will serve hashes for a given model
@@ -40,6 +41,14 @@ Leveraging the [hugginface/safetensors](https://huggingface.co/docs/safetensors/
 ## Installation
 
 Currently `cake` can only be built from source. Pre-built binaries coming soon™️.
+
+## Usage
+
+`cake help` to view how to use it.
+
+`cake download --model-id <MODEL_ID>` to download a model to a folder relative to `cake` called `storage` (config coming soon™️). 
+
+Example: `cake download --model-id KoboldAI/fairseq-dense-1.3B` will download this model: https://huggingface.co/KoboldAI/fairseq-dense-1.3B from the `main` branch.
 
 ## Contributing
 
