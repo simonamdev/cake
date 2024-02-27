@@ -14,12 +14,11 @@ use crate::export;
 use crate::Layer;
 
 pub fn get_download_url_from_model_id(model_id: &str, file_name: &str) -> String {
-    let url = format!(
+    format!(
         "https://huggingface.co/{}/resolve/main/{}?download=true",
-        model_id, file_name
-    )
-    .to_string();
-    url
+        model_id,
+        file_name
+    ).to_string()
 }
 
 pub fn download_safetensors_file_by_model_id(model_id: &str) {
@@ -48,7 +47,7 @@ pub fn download_safetensors_file(model_id: &str, url: &str, storage_dir: &str) {
     header_file_path.push(storage_dir);
     header_file_path.push(model_id);
     header_file_path.push("header.json");
-    fs::create_dir_all(&header_file_path.parent().unwrap()).unwrap();
+    fs::create_dir_all(header_file_path.parent().unwrap()).unwrap();
     let mut header_file = File::create(header_file_path).unwrap();
     let mut header_buf = serde_json::to_string(&header).unwrap().into_bytes();
     // TAKEN DIRECTLY FROM SAFETENSORS -|
@@ -65,7 +64,7 @@ pub fn download_safetensors_file(model_id: &str, url: &str, storage_dir: &str) {
     header_length_path.push(storage_dir);
     header_length_path.push(model_id);
     header_length_path.push("header.length");
-    fs::create_dir_all(&header_length_path.parent().unwrap()).unwrap();
+    fs::create_dir_all(header_length_path.parent().unwrap()).unwrap();
     let mut header_length_file = File::create(header_length_path).unwrap();
     header_length_file
         .write_all(format!("{}", header_length).as_bytes())
@@ -79,12 +78,8 @@ pub fn download_safetensors_file(model_id: &str, url: &str, storage_dir: &str) {
         .as_object()
         .unwrap()
         .iter()
-        .filter_map(|data| {
-            if data.0 != "__metadata__" {
-                Some(data)
-            } else {
-                None
-            }
+        .filter(|data| {
+            data.0 != "__metadata__"
         })
         .map(|(tensor_name, _)| {
             let mut tensor_file_path = PathBuf::new();
@@ -93,12 +88,9 @@ pub fn download_safetensors_file(model_id: &str, url: &str, storage_dir: &str) {
             tensor_file_path.push(tensor_name);
             (tensor_name.to_string(), tensor_file_path)
         })
-        .filter_map(|data| {
+        .filter(|data| {
             // We only want the ones where the file does NOT exist yet
-            match !file_exists(&data.1) {
-                true => Some(data),
-                false => None,
-            }
+            !file_exists(&data.1)
         })
         .for_each(|(name, path)| {
             tensor_name_to_path.insert(name, path);
@@ -122,7 +114,7 @@ pub fn download_safetensors_file(model_id: &str, url: &str, storage_dir: &str) {
         |(layer, tensor)| {
             // Write to file
             let file_path = tensor_name_to_path.get(&layer.name).unwrap();
-            fs::create_dir_all(&file_path.parent().unwrap()).unwrap();
+            fs::create_dir_all(file_path.parent().unwrap()).unwrap();
             let mut file = File::create(file_path).unwrap();
             file.write_all(&tensor).unwrap();
             file.flush().unwrap();
@@ -155,23 +147,15 @@ pub fn par_download_layers(
         .unwrap()
         .iter()
         // Skip the metadata key
-        .filter_map(|data| {
-            if data.0 != "__metadata__" {
-                Some(data)
-            } else {
-                None
-            }
+        .filter(|data| {
+            data.0 != "__metadata__"
         })
         // Skip tensors not in the allow list
-        .filter_map(|data| {
-            if tensor_names_allow_list.is_some() {
-                if tensor_names_allow_list.as_ref().unwrap().contains(data.0) {
-                    Some(data)
-                } else {
-                    None
-                }
+        .filter(|data| {
+            if let Some(tnal) = &tensor_names_allow_list {
+                tnal.contains(data.0)
             } else {
-                Some(data)
+                false
             }
         })
         .map(|(name, metadata)| {
@@ -184,8 +168,8 @@ pub fn par_download_layers(
             let offset_diff = offset_end - offset_start;
             Layer {
                 name: name.to_string(),
-                offset_start: offset_start,
-                offset_end: offset_end,
+                offset_start,
+                offset_end,
                 size: offset_diff,
             }
         })
@@ -199,7 +183,7 @@ pub fn par_download_layers(
         let pb = mp.add(ProgressBar::new(layer.size));
         pb.set_style(sty_aux.clone());
         pb.enable_steady_tick(Duration::from_millis(200));
-        pb.set_message(format!("{}", layer.name));
+        pb.set_message(layer.name.to_string());
 
         // Download the tensor
         // println!("{}: Downloading {}...", model_id, tensor_name);
@@ -230,6 +214,7 @@ pub fn download_safetensors_header(url: &str) -> (serde_json::Value, u64) {
     // println!("{:?}", header_length_bytes);
     let json_header_length = get_u64_from_u8_vec(header_length_bytes);
 
+<<<<<<< HEAD
     match json_header_length {
         Some(jhl) => {
             println!("JSON header is {jhl} bytes long");
@@ -249,6 +234,20 @@ pub fn download_safetensors_header(url: &str) -> (serde_json::Value, u64) {
             return (json!({}), 0)
         }
     }
+=======
+    println!("JSON header is {json_header_length} bytes long");
+
+    let header_bytes: Vec<u8> =
+        download_part_of_file(url, 8, json_header_length, None).unwrap();
+    let json_string = String::from_utf8_lossy(&header_bytes);
+    // println!("{:}", json_string);
+    // println!("{}", json_header_length);
+    // println!("{}", json_string.len());
+    // println!("{}", header_bytes.len());
+    let metadata_json: serde_json::Value = serde_json::from_str(&json_string).unwrap();
+
+    (metadata_json, json_header_length)
+>>>>>>> f294866 (Implement Clippy suggestions)
 }
 
 fn get_u64_from_u8_vec(bytes: Vec<u8>) -> Option<u64> {
@@ -275,9 +274,7 @@ fn download_tensor(
     let offset_diff = offset_end - offset_start;
     let byte_count = offset_diff;
 
-    let tensor = download_part_of_file(url, offset_start, byte_count, client, pb);
-
-    tensor
+    download_part_of_file(url, offset_start, byte_count, client, pb)
 }
 
 fn download_part_of_file(
@@ -318,5 +315,5 @@ fn download_part_of_file(
         }
     }
 
-    return Ok(buffer);
+    Ok(buffer)
 }

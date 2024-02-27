@@ -57,7 +57,7 @@ fn main() {
             // Known issue: using this will not create an equivalent file to that available on huggingface due to
             // differences in how the json header is formatted, however it will create a valid safetensors file
             // Known issue: only works for models with a single file called "model.safetensors"
-            download::download_safetensors_file_by_model_id(&model_id)
+            download::download_safetensors_file_by_model_id(model_id)
         }
         Some(Commands::CheckModels {}) => {
             // Get the model ids and file names from the JSON file
@@ -81,7 +81,7 @@ fn main() {
                         model_id,
                         file_name
                     );
-                    let model_parts: Vec<&str> = model_id.split("/").collect();
+                    let model_parts: Vec<&str> = model_id.split('/').collect();
                     let hashes_file_path =
                         get_hashes_file_dir_and_path(model_parts[0], model_parts[1]);
                     let hashes_file_path_clone = hashes_file_path.1.clone();
@@ -123,14 +123,14 @@ fn run_hashing_experiment() {
             );
             continue;
         }
-        if file_names.as_array().unwrap().len() == 0 {
+        if file_names.as_array().unwrap().is_empty() {
             println!("{} skipped due to no files", model_id);
             continue;
         }
         let safetensors_file_name = file_names
             .as_array()
             .unwrap()
-            .get(0)
+            .first()
             .unwrap()
             .as_str()
             .unwrap();
@@ -142,7 +142,7 @@ fn run_hashing_experiment() {
             );
             continue;
         }
-        let model_parts: Vec<&str> = model_id.split("/").collect();
+        let model_parts: Vec<&str> = model_id.split('/').collect();
         let hashes_file_path = get_hashes_file_dir_and_path(model_parts[0], model_parts[1]);
         let hashes_file_path_clone = hashes_file_path.1.clone();
         let hashes_file_exists = fs::metadata(hashes_file_path_clone).is_ok();
@@ -246,10 +246,10 @@ fn get_hashes_file_dir_and_path(model_account: &str, model_name: &str) -> (Strin
         .to_string_lossy()
         .into_owned()
         .clone()
-        + &"/results/".to_owned()
-        + &model_account
+        + "/results/"
+        + model_account
         + "/"
-        + &model_name;
+        + model_name;
     let target_file_path = abs_dir.to_owned() + "/hashes.json";
 
     (abs_dir, target_file_path)
