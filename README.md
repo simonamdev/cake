@@ -14,26 +14,26 @@
 **cake** is an experimental, more efficient way to download and store Machine Learning models from [🤗 Hugging Face](https://huggingface.co/). Think of it as 🐋 docker, but for ML models.
 
 Leveraging the [hugginface/safetensors](https://huggingface.co/docs/safetensors/en/index) format, it enables:
-* Usage of a machine's entire network bandwidth by parallelising downloads of multiple tensors at the same time.
+* Usage of more of a machine's network bandwidth by parallelising downloads of multiple tensors at the same time.
 * Robustness against network failures. `cake` caches each layer to disk, so stopping half-way and retrying will not re-download already downloaded layers.
 * (❕COMING SOON™️❕) Deduplication of layers based on their contents. If you download `Mistral-7B-v0.1` followed by a fine-tune of it which only modified the top two layers, then `cake` will only download the top two layers.
 
 ## Roadmap
 
-[ ] Version 0.1:
+[] Version 0.1:
 * Setup linting in CI.
 * Build the executable on push to `main` branch.
 * Open source!
 
-[ ] Version 0.2
+[] Version 0.2
 * Setup a TUI interface to enable listing / searching of available models
 
-[ ] Version 0.3:
+[] Version 0.3:
 * Setup a server component that will serve hashes for a given model
 * Change local storage to store tensors based on their hashes
 * Add deduplication of downloading hashed tensors. If we already have the tensor, do not download it.
 
-[ ] Version 0.4:
+[] Version 0.4:
 * Download and hash at least 25% of text-gen models from huggingface hub.
 * Write a blog post about the results
 
