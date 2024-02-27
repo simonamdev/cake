@@ -42,9 +42,7 @@ pub fn combine_cached_files_to_safetensors_file(
         .as_object()
         .unwrap()
         .keys()
-        .filter(|key| {
-            *key != "__metadata__"
-        })
+        .filter(|key| *key != "__metadata__")
         .cloned()
         .collect();
 

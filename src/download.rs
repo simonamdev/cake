@@ -16,9 +16,9 @@ use crate::Layer;
 pub fn get_download_url_from_model_id(model_id: &str, file_name: &str) -> String {
     format!(
         "https://huggingface.co/{}/resolve/main/{}?download=true",
-        model_id,
-        file_name
-    ).to_string()
+        model_id, file_name
+    )
+    .to_string()
 }
 
 pub fn download_safetensors_file_by_model_id(model_id: &str) {
@@ -78,9 +78,7 @@ pub fn download_safetensors_file(model_id: &str, url: &str, storage_dir: &str) {
         .as_object()
         .unwrap()
         .iter()
-        .filter(|data| {
-            data.0 != "__metadata__"
-        })
+        .filter(|data| data.0 != "__metadata__")
         .map(|(tensor_name, _)| {
             let mut tensor_file_path = PathBuf::new();
             tensor_file_path.push(storage_dir);
@@ -147,9 +145,7 @@ pub fn par_download_layers(
         .unwrap()
         .iter()
         // Skip the metadata key
-        .filter(|data| {
-            data.0 != "__metadata__"
-        })
+        .filter(|data| data.0 != "__metadata__")
         // Skip tensors not in the allow list
         .filter(|data| {
             if let Some(tnal) = &tensor_names_allow_list {
@@ -237,8 +233,7 @@ pub fn download_safetensors_header(url: &str) -> (serde_json::Value, u64) {
 =======
     println!("JSON header is {json_header_length} bytes long");
 
-    let header_bytes: Vec<u8> =
-        download_part_of_file(url, 8, json_header_length, None).unwrap();
+    let header_bytes: Vec<u8> = download_part_of_file(url, 8, json_header_length, None).unwrap();
     let json_string = String::from_utf8_lossy(&header_bytes);
     // println!("{:}", json_string);
     // println!("{}", json_header_length);
