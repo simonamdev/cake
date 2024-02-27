@@ -35,3 +35,12 @@ jobs:
   #   steps:
   #     - uses: actions/checkout@v4
   #     - uses: EmbarkStudios/cargo-deny-action@v1
+  all-checks-passed:
+    if: success()
+    needs:
+      - fmt
+      - clippy
+      # - cargo-deny
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "All checks passed!"
