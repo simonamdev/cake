@@ -101330,9 +101330,6 @@
     "model-00001-of-00002.safetensors",
     "model-00002-of-00002.safetensors"
   ],
-  "LoneStriker/Qwen1.5-7B-Chat-GPTQ": [
-    "gptq_model-4bit-32g.safetensors"
-  ],
   "LoneStriker/Qwen1.5-72B-Chat-AWQ": [
     "model-00001-of-00005.safetensors",
     "model-00002-of-00005.safetensors",
@@ -101350,14 +101347,8 @@
   "VincentButterfield/Jolsus-Roist": [
     "model.safetensors"
   ],
-  "LoneStriker/Qwen1.5-4B-Chat-GPTQ": [
-    "gptq_model-4bit-32g.safetensors"
-  ],
   "impossibleexchange/pt31": [
     "model.safetensors"
-  ],
-  "LoneStriker/Qwen1.5-14B-Chat-GPTQ": [
-    "gptq_model-4bit-32g.safetensors"
   ],
   "tomaszki/nous-seventeen": [
     "model-00001-of-00002.safetensors",
@@ -101483,9 +101474,6 @@
     "model-00001-of-00003.safetensors",
     "model-00002-of-00003.safetensors",
     "model-00003-of-00003.safetensors"
-  ],
-  "LoneStriker/Qwen1.5-72B-Chat-GPTQ": [
-    "gptq_model-4bit-32g.safetensors"
   ],
   "BioMistral/BioMistral-7B-TIES": [
     "model-00001-of-00002.safetensors",
@@ -102233,9 +102221,6 @@
   "muzammil-eds/tinyllama-3T-64k-JSONExtractor-v2": [
     "model.safetensors"
   ],
-  "LoneStriker/Quyen-Plus-v0.1-GPTQ": [
-    "gptq_model-4bit-32g.safetensors"
-  ],
   "SalehAhmad/Initial_Knowledge_Assessment_Test-Model-Phi2_3Epochs": [
     "model-00001-of-00002.safetensors",
     "model-00002-of-00002.safetensors"
@@ -102311,9 +102296,6 @@
     "model-00001-of-00003.safetensors",
     "model-00002-of-00003.safetensors",
     "model-00003-of-00003.safetensors"
-  ],
-  "LoneStriker/Quyen-Pro-v0.1-GPTQ": [
-    "gptq_model-4bit-32g.safetensors"
   ],
   "aligner/aligner-7b-v1.0": [
     "model-00001-of-00003.safetensors",
@@ -102869,9 +102851,6 @@
   ],
   "LoneStriker/DeepMagic-Coder-7b-AWQ": [
     "model.safetensors"
-  ],
-  "LoneStriker/DeepMagic-Coder-7b-GPTQ": [
-    "gptq_model-4bit-32g.safetensors"
   ],
   "Test157t/Kunocchini-7b-128k-test": [
     "model-00001-of-00008.safetensors",
@@ -103439,9 +103418,6 @@
   ],
   "LoneStriker/DeepMagic-Coder-7b-Alt-AWQ": [
     "model.safetensors"
-  ],
-  "LoneStriker/DeepMagic-Coder-7b-Alt-GPTQ": [
-    "gptq_model-4bit-32g.safetensors"
   ],
   "LoneStriker/Senku-70B-Full-4.0bpw-h6-exl2": [
     "output-00001-of-00005.safetensors",
@@ -104799,9 +104775,6 @@
     "model-00001-of-00003.safetensors",
     "model-00002-of-00003.safetensors",
     "model-00003-of-00003.safetensors"
-  ],
-  "LoneStriker/Wiedervereinigung-7b-dpo-GPTQ": [
-    "gptq_model-4bit-32g.safetensors"
   ],
   "Kukedlc/Llama-7b-spanish": [
     "model-00001-of-00002.safetensors",
@@ -106378,9 +106351,6 @@
     "model-00024-of-00025.safetensors",
     "model-00025-of-00025.safetensors"
   ],
-  "LoneStriker/miqu-1-70b-sf-GPTQ": [
-    "gptq_model-4bit-32g.safetensors"
-  ],
   "khanhnto/kyt-tietest-13b": [
     "model-00001-of-00006.safetensors",
     "model-00002-of-00006.safetensors",
@@ -107599,9 +107569,6 @@
     "model-00003-of-00005.safetensors",
     "model-00004-of-00005.safetensors",
     "model-00005-of-00005.safetensors"
-  ],
-  "LoneStriker/Tess-72B-v1.5b-GPTQ": [
-    "gptq_model-4bit-32g.safetensors"
   ],
   "ToastyPigeon/Mistral-7B-v0.1-ROPE-Fix": [
     "model-00001-of-00002.safetensors",
@@ -110023,9 +109990,6 @@
   "smrynrz20/models": [
     "model.safetensors"
   ],
-  "LoneStriker/Yi-34B-200K-RPMerge-GPTQ": [
-    "gptq_model-4bit-32g.safetensors"
-  ],
   "CultriX/NeuralTrix-v3-bf16": [
     "model-00001-of-00002.safetensors",
     "model-00001-of-00008.safetensors",
@@ -111758,9 +111722,6 @@
   "SeifGad/Qwen-0.5B-Enhanced": [
     "model.safetensors"
   ],
-  "LoneStriker/Smaug-34B-v0.1-GPTQ": [
-    "gptq_model-4bit-32g.safetensors"
-  ],
   "vitruv/mistral_7b_dpo": [
     "model-00001-of-00003.safetensors",
     "model-00002-of-00003.safetensors",
@@ -112883,9 +112844,6 @@
   "LoneStriker/Fimbulvetr-11B-v2-Test-14-AWQ": [
     "model-00001-of-00002.safetensors",
     "model-00002-of-00002.safetensors"
-  ],
-  "LoneStriker/Fimbulvetr-11B-v2-Test-14-GPTQ": [
-    "gptq_model-4bit-32g.safetensors"
   ],
   "c-demartino/llama2-7b-chat-p-q4": [
     "model-00001-of-00003.safetensors",
@@ -115349,9 +115307,6 @@
   ],
   "LoneStriker/Mistral-7B-Instruct-v0.2-Neural-Story-AWQ": [
     "model.safetensors"
-  ],
-  "LoneStriker/Mistral-7B-Instruct-v0.2-Neural-Story-GPTQ": [
-    "gptq_model-4bit-32g.safetensors"
   ],
   "Owhslp/nous_researcher_tuning_7": [
     "model-00001-of-00003.safetensors",
