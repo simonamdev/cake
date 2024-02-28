@@ -150,6 +150,11 @@ fn run_hashing_experiment() {
         }
         println!("Downloading model layers from {}...", safetensors_file_name);
         let hashed_layers_result = download_and_hash_layers(model_id, safetensors_file_name);
+        // If no results are returned, skip this file
+        if hashed_layers_result.len() == 0 {
+            println!("{} skipped due to invalid header length", model_id);
+            continue;
+        }
         fs::create_dir_all(hashes_file_path.0).unwrap();
         let file = File::create(hashes_file_path.1).unwrap();
         println!("Outputting hash results...");
@@ -166,9 +171,15 @@ struct Layer {
 }
 
 fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Value> {
+    // Create a new map and insert processed entries
+    let mut result_obj: Map<String, Value> = Map::new();
+
     // Get the header of the model
     let url = download::get_download_url_from_model_id(model_id, file_name);
-    let (header, _) = download::download_safetensors_header(&url);
+    let (header, header_length) = download::download_safetensors_header(&url);
+    if header_length == 0 {
+        return result_obj
+    }
 
     // Setup the progress bars
     let sty_main =
@@ -190,8 +201,6 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
             })
             .collect();
 
-    // Create a new map and insert processed entries
-    let mut result_obj: Map<String, Value> = Map::new();
     for (layer, _, hash) in layer_names_and_tensors {
         let tensor_result = json!({
             "data_offsets": vec![layer.offset_start, layer.offset_end],

@@ -1,7 +1,8 @@
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use rayon::iter::ParallelIterator;
+use reqwest::StatusCode;
 use reqwest::{blocking::Client, Error};
-use serde_json::Value;
+use serde_json::{error, json, Value};
 use std::collections::HashMap;
 use std::fs::{self, metadata, File};
 use std::io::prelude::*;
@@ -40,6 +41,7 @@ pub fn download_safetensors_file(model_id: &str, url: &str, storage_dir: &str) {
     // First download the header to understand the file
     println!("Retrieving header for {}", model_id);
     let (header, header_length) = download_safetensors_header(url);
+    // TODO: Handle when header_length is zero
 
     // Write the header to a file
     // TODO: Move to its own function!
@@ -218,26 +220,45 @@ pub fn download_safetensors_header(url: &str) -> (serde_json::Value, u64) {
     // Step 1: download the first 8 bytes of the file, that contains the header length as u64
 
     let header_length_bytes: Vec<u8> = download_part_of_file(url, 0, 8, None).unwrap();
-    println!("{:?}", header_length_bytes);
+    let ret = String::from_utf8_lossy(&header_length_bytes).to_string();
+    println!("{}", ret);
+
+    // println!("{:?}", header_length_bytes);
     let json_header_length = get_u64_from_u8_vec(header_length_bytes);
 
-    println!("JSON header is {json_header_length} bytes long");
-
-    let header_bytes: Vec<u8> =
-        download_part_of_file(url, 8, json_header_length.try_into().unwrap(), None).unwrap();
-    let json_string = String::from_utf8_lossy(&header_bytes);
-    // println!("{:}", json_string);
-    // println!("{}", json_header_length);
-    // println!("{}", json_string.len());
-    // println!("{}", header_bytes.len());
-    let metadata_json: serde_json::Value = serde_json::from_str(&json_string).unwrap();
-
-    (metadata_json, json_header_length)
+    match json_header_length {
+        Some(jhl) => {
+            println!("JSON header is {jhl} bytes long");
+        
+            let header_bytes: Vec<u8> =
+                download_part_of_file(url, 8, jhl, None).unwrap();
+            let json_string = String::from_utf8_lossy(&header_bytes);
+            // println!("{:}", json_string);
+            // println!("{}", json_header_length);
+            // println!("{}", json_string.len());
+            // println!("{}", header_bytes.len());
+            let metadata_json: serde_json::Value = serde_json::from_str(&json_string).unwrap();
+        
+            return (metadata_json, jhl)
+        }
+        None => {
+            return (json!({}), 0)
+        }
+    }
 }
 
-fn get_u64_from_u8_vec(bytes: Vec<u8>) -> u64 {
-    let b: [u8; 8] = bytes.try_into().unwrap();
-    u64::from_le_bytes(b)
+fn get_u64_from_u8_vec(bytes: Vec<u8>) -> Option<u64> {
+    let b = bytes.try_into();
+    match b {
+        Ok(bytes) => {
+            println!("{:?}", bytes);
+            Some(u64::from_le_bytes(bytes))
+        }
+        Err(e) => {
+            // println!("{:?}", e);
+            None
+        }
+    }
 }
 
 fn download_tensor(
@@ -267,8 +288,8 @@ fn download_part_of_file(
     let client = Client::new();
     let mut response = client.get(url).header("Range", range_header_value).send()?;
 
-    // let status_code = response.status();
-    // println!("Status Code: {}", status_code);
+    let status_code = response.status();
+    println!("Status Code: {}", status_code);
 
     // Setup the progress bar if one is available
     let total_size = response.content_length().unwrap_or(0);
