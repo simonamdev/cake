@@ -288,8 +288,8 @@ fn download_part_of_file(
     let client = Client::new();
     let mut response = client.get(url).header("Range", range_header_value).send()?;
 
-    let status_code = response.status();
-    println!("Status Code: {}", status_code);
+    // let status_code = response.status();
+    // println!("Status Code: {}", status_code);
 
     // Setup the progress bar if one is available
     let total_size = response.content_length().unwrap_or(0);
