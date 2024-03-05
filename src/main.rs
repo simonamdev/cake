@@ -1,6 +1,7 @@
 use std::env;
 use std::fs::{self, File};
 use std::io::Read;
+use std::time::Duration;
 
 use clap::{Parser, Subcommand};
 
@@ -8,6 +9,7 @@ use rayon::iter::ParallelIterator;
 use serde_json::{json, Map, Value};
 
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
+use lz4::block::{compress};
 
 mod compare;
 mod download;
@@ -190,35 +192,47 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
     }
 
     // Setup the progress bars
-    let sty_main =
-        ProgressStyle::with_template("[{elapsed_precise}] {bar:40.green/yellow} {pos:>4}/{len:4}")
-            .unwrap();
-
-    let main_bar = ProgressBar::new(header.as_object().unwrap().len() as u64);
-    main_bar.set_style(sty_main);
+    let main_bar = ProgressBar::new(header.as_object().unwrap().len() as u64)
+        .with_style(ProgressStyle::with_template("[{elapsed_precise}] {bar:20.green/yellow} {pos:>4}/{len:4} {spinner:.blue} {msg}").unwrap());
+    main_bar.enable_steady_tick(Duration::from_millis(500));
     let main_bar_clone = main_bar.clone();
-    let mp = MultiProgress::new();
+    let mp: MultiProgress = MultiProgress::new();
     mp.add(main_bar);
 
     let layers_metadata: Vec<LayerMetadata> =
         download::par_download_layers(header, url, None, mp)
             .map(|(layer, tensor)| {
+                // Perform the hashing part for uncompressed version
+                main_bar_clone.set_message(format!("Hashing: {}", layer.name));
                 let hash = hash::sha256_hash(&tensor);
+                // Perform the hashing part for compressed version
+                // Compress the tensor
+                main_bar_clone.set_message(format!("Compressing: {}", layer.name));
+                let compressed_tensor = compress(&tensor, None, false).unwrap();
+                main_bar_clone.set_message(format!("Hashing Compressed: {}", layer.name));
+                let compressed_hash = hash::sha256_hash(&compressed_tensor);
                 main_bar_clone.inc(1);
+                main_bar_clone.set_message("Waiting...");
+
                 LayerMetadata{
                     layer,
                     hash,
-                    size: 0,
-                    compressed_hash: "".to_string(),
-                    compressed_size: 0
+                    size: tensor.len() as u64,
+                    compressed_hash,
+                    compressed_size: compressed_tensor.len() as u64
                 }
             })
             .collect();
 
+    main_bar_clone.finish_with_message("All done!");
+
     for layer_metadata in layers_metadata {
         let tensor_result = json!({
             "data_offsets": vec![layer_metadata.layer.offset_start, layer_metadata.layer.offset_end],
-            "hash": layer_metadata.hash
+            "hash": layer_metadata.hash,
+            "compressed_hash": layer_metadata.compressed_hash,
+            "size": layer_metadata.size,
+            "compressed_size": layer_metadata.compressed_size,
         });
         result_obj.insert(layer_metadata.layer.name, tensor_result);
     }

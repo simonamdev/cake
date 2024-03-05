@@ -1,14 +1,13 @@
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use rayon::iter::ParallelIterator;
-use reqwest::StatusCode;
 use reqwest::{blocking::Client, Error};
-use serde_json::{error, json, Value};
+use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::fs::{self, metadata, File};
 use std::io::prelude::*;
 use std::path::PathBuf;
 use std::time::Duration;
-use std::io::{Error as IOError, Read};
+use std::io::Read;
 use rayon::prelude::*;
 
 use crate::export;
@@ -147,7 +146,7 @@ pub fn par_download_layers(
         "[{elapsed_precise}] {bar:20.cyan/blue} {pos:>8}/{len:8}B {msg}",
     )
     .unwrap()
-    .progress_chars("##-");
+    .progress_chars("#*-");
 
     // Iterate over each tensor and download it
     // Only download the layers in the allow list, if it is available
@@ -259,7 +258,7 @@ fn get_u64_from_u8_vec(bytes: Vec<u8>) -> Option<u64> {
             println!("{:?}", bytes);
             Some(u64::from_le_bytes(bytes))
         }
-        Err(e) => {
+        Err(_e) => {
             // println!("{:?}", e);
             None
         }
