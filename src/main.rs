@@ -4,7 +4,8 @@ use std::io::Read;
 
 use clap::{Parser, Subcommand};
 
-use rayon::iter::ParallelIterator;
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use rayon::prelude::*;
 use serde_json::{json, Map, Value};
 
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
@@ -192,16 +193,16 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
     let mp = MultiProgress::new();
     mp.add(main_bar);
 
-    let layer_names_and_tensors: Vec<(Layer, Vec<u8>, String)> =
+    let layer_names_and_hashes: Vec<(Layer, String)> =
         download::par_download_layers(header, url, None, mp)
             .map(|(layer, tensor)| {
                 let hash = hash::sha256_hash(&tensor);
                 main_bar_clone.inc(1);
-                (layer, tensor, hash)
+                (layer, hash)
             })
             .collect();
 
-    for (layer, _, hash) in layer_names_and_tensors {
+    for (layer, hash) in layer_names_and_hashes {
         let tensor_result = json!({
             "data_offsets": vec![layer.offset_start, layer.offset_end],
             "hash": hash

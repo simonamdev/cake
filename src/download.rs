@@ -8,7 +8,7 @@ use std::fs::{self, metadata, File};
 use std::io::prelude::*;
 use std::path::PathBuf;
 use std::time::Duration;
-
+use std::io::{Error as IOError, Read};
 use rayon::prelude::*;
 
 use crate::export;
