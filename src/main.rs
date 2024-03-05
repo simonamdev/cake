@@ -4,8 +4,7 @@ use std::io::Read;
 
 use clap::{Parser, Subcommand};
 
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use rayon::prelude::*;
+use rayon::iter::ParallelIterator;
 use serde_json::{json, Map, Value};
 
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
@@ -171,6 +170,14 @@ struct Layer {
     size: u64,
 }
 
+struct LayerMetadata {
+    layer: Layer,
+    hash: String,
+    size: u64,
+    compressed_hash: String,
+    compressed_size: u64,
+}
+
 fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Value> {
     // Create a new map and insert processed entries
     let mut result_obj: Map<String, Value> = Map::new();
@@ -193,21 +200,27 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
     let mp = MultiProgress::new();
     mp.add(main_bar);
 
-    let layer_names_and_hashes: Vec<(Layer, String)> =
+    let layers_metadata: Vec<LayerMetadata> =
         download::par_download_layers(header, url, None, mp)
             .map(|(layer, tensor)| {
                 let hash = hash::sha256_hash(&tensor);
                 main_bar_clone.inc(1);
-                (layer, hash)
+                LayerMetadata{
+                    layer,
+                    hash,
+                    size: 0,
+                    compressed_hash: "".to_string(),
+                    compressed_size: 0
+                }
             })
             .collect();
 
-    for (layer, hash) in layer_names_and_hashes {
+    for layer_metadata in layers_metadata {
         let tensor_result = json!({
-            "data_offsets": vec![layer.offset_start, layer.offset_end],
-            "hash": hash
+            "data_offsets": vec![layer_metadata.layer.offset_start, layer_metadata.layer.offset_end],
+            "hash": layer_metadata.hash
         });
-        result_obj.insert(layer.name, tensor_result);
+        result_obj.insert(layer_metadata.layer.name, tensor_result);
     }
 
     result_obj
