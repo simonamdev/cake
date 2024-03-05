@@ -140,6 +140,8 @@ pub fn par_download_layers(
     tensor_names_allow_list: Option<Vec<String>>,
     mp: MultiProgress,
 ) -> impl ParallelIterator<Item = (Layer, Vec<u8>)> {
+    // Setup the reqwest client to enable connection pooling
+    let client = Client::new();
     // Setup spinners
     let sty_aux = ProgressStyle::with_template(
         "[{elapsed_precise}] {bar:20.cyan/blue} {pos:>8}/{len:8}B {msg}",
@@ -194,6 +196,7 @@ pub fn par_download_layers(
     sorted_layers.sort_by(|a: &Layer, b: &Layer| b.size.cmp(&a.size));
 
     sorted_layers.into_par_iter().map(move |layer| {
+        let client = &client;
         let pb = mp.add(ProgressBar::new(layer.size));
         pb.set_style(sty_aux.clone());
         pb.enable_steady_tick(Duration::from_millis(200));
@@ -202,7 +205,7 @@ pub fn par_download_layers(
         // Download the tensor
         // println!("{}: Downloading {}...", model_id, tensor_name);
         let tensor: Vec<u8> =
-            download_tensor(&url, layer.offset_start, layer.offset_end, Some(pb.clone())).unwrap(); // Handle unwrap better
+            download_tensor(&url, layer.offset_start, layer.offset_end, client, Some(pb.clone())).unwrap(); // Handle unwrap better
         pb.finish_and_clear();
         (layer.clone(), tensor)
     })
@@ -217,9 +220,11 @@ fn file_exists(path: &PathBuf) -> bool {
 }
 
 pub fn download_safetensors_header(url: &str) -> (serde_json::Value, u64) {
+    let client = Client::new();
+
     // Step 1: download the first 8 bytes of the file, that contains the header length as u64
 
-    let header_length_bytes: Vec<u8> = download_part_of_file(url, 0, 8, None).unwrap();
+    let header_length_bytes: Vec<u8> = download_part_of_file(url, 0, 8, &client, None).unwrap();
     let ret = String::from_utf8_lossy(&header_length_bytes).to_string();
     println!("{}", ret);
 
@@ -231,7 +236,7 @@ pub fn download_safetensors_header(url: &str) -> (serde_json::Value, u64) {
             println!("JSON header is {jhl} bytes long");
         
             let header_bytes: Vec<u8> =
-                download_part_of_file(url, 8, jhl, None).unwrap();
+                download_part_of_file(url, 8, jhl, &client, None).unwrap();
             let json_string = String::from_utf8_lossy(&header_bytes);
             // println!("{:}", json_string);
             // println!("{}", json_header_length);
@@ -265,12 +270,13 @@ fn download_tensor(
     url: &str,
     offset_start: u64,
     offset_end: u64,
+    client: &Client,
     pb: Option<ProgressBar>,
 ) -> Result<Vec<u8>, Error> {
     let offset_diff = offset_end - offset_start;
     let byte_count = offset_diff;
 
-    let tensor = download_part_of_file(url, offset_start, byte_count, pb);
+    let tensor = download_part_of_file(url, offset_start, byte_count, client, pb);
 
     tensor
 }
@@ -279,13 +285,13 @@ fn download_part_of_file(
     url: &str,
     byte_index: u64,
     number_of_bytes: u64,
+    client: &Client,
     pb: Option<ProgressBar>,
 ) -> Result<Vec<u8>, Error> {
     let chunk_size = 1024; // 1KB
 
     // Range is exclusive. Example: 0-499 is byte 0 to byte 499, so 500 bytes in total
     let range_header_value = format!("bytes={}-{}", byte_index, byte_index + number_of_bytes - 1);
-    let client = Client::new();
     let mut response = client.get(url).header("Range", range_header_value).send()?;
 
     // let status_code = response.status();
