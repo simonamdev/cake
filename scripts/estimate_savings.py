@@ -1,6 +1,8 @@
 import os
 import json
 
+from tqdm import tqdm
+
 def read_json(file_path):
     with open(file_path, 'r') as f:
         data = json.load(f)
@@ -13,7 +15,7 @@ def calculate_byte_content(result_file_paths):
     layer_count = 0
     duple_layer_count = 0
 
-    for file_path in result_file_paths:
+    for file_path in tqdm(result_file_paths):
         data = read_json(file_path)
         for tensor_metadata in data.values():
             layer_count += 1
