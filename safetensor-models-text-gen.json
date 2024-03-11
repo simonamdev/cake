@@ -68707,9 +68707,6 @@
     "output-00005-of-00006.safetensors",
     "output-00006-of-00006.safetensors"
   ],
-  "TheBloke/Bagel-Hermes-2x34b-GPTQ": [
-    "model.safetensors"
-  ],
   "kevin009/flyingllama": [
     "model.safetensors"
   ],
@@ -69059,9 +69056,6 @@
     "model.safetensors"
   ],
   "Yarofa/model_h100_v166_v2": [
-    "model.safetensors"
-  ],
-  "TheBloke/Cosmosis-3x34B-GPTQ": [
     "model.safetensors"
   ],
   "kevin009/culturalmixer": [
