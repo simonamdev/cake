@@ -114,53 +114,61 @@ fn run_hashing_experiment() {
     for (model_id, file_names) in json.as_object().unwrap() {
         i += 1;
         println!("{}/{}: {}", i, json.as_object().unwrap().len(), model_id);
-        // For now, handle only models with a single file, for simplicity
-        // TODO: Handle multi file models!
-        if file_names.as_array().unwrap().len() > 1 {
-            println!(
-                "{} skipped due to multiple safetensors files. (temporary limitation)",
-                model_id
-            );
-            continue;
-        }
         if file_names.as_array().unwrap().is_empty() {
             println!("{} skipped due to no files", model_id);
             continue;
         }
-        let safetensors_file_name = file_names
-            .as_array()
-            .unwrap()
-            .first()
-            .unwrap()
-            .as_str()
-            .unwrap();
-        // For now skip adapter models as they are not being parsed correctly
-        if safetensors_file_name.contains("adapter_model") {
-            println!(
-                "{} skipped due to being an adapter model file (temporary limitation)",
-                model_id
-            );
-            continue;
-        }
+
         let model_parts: Vec<&str> = model_id.split('/').collect();
         let hashes_file_path = get_hashes_file_dir_and_path(model_parts[0], model_parts[1]);
-        let hashes_file_path_clone = hashes_file_path.1.clone();
-        let hashes_file_exists = fs::metadata(hashes_file_path_clone).is_ok();
-        if hashes_file_exists {
-            println!("{} skipped as hashes file already exists", model_id);
-            continue;
+
+        // Download each file separately and then merge the results if there are multiple files
+        let mut file_results: Vec<Map<String, Value>> = Vec::new();
+        for file_name_val in file_names.as_array().unwrap() {
+            let file_name = file_name_val.as_str().unwrap().to_string();
+            // For now skip adapter models as they are not being parsed correctly
+            if file_name.contains("adapter_model") {
+                println!(
+                    "{} skipped due to being an adapter model file (temporary limitation)",
+                    model_id
+                );
+                continue;
+            }
+
+            let hashes_file_path_clone = hashes_file_path.1.clone();
+            let hashes_file_exists = fs::metadata(hashes_file_path_clone).is_ok();
+            if hashes_file_exists {
+                println!("{} skipped as hashes file already exists", model_id);
+                continue;
+            }
+            println!("Downloading model layers from {}...", file_name);
+            let hashed_layers_result = download_and_hash_layers(model_id, &file_name);
+            // If no results are returned, skip this file
+            if hashed_layers_result.is_empty() {
+                println!("{} skipped due to invalid header length", model_id);
+                continue;
+            }
+            file_results.push(hashed_layers_result);
         }
-        println!("Downloading model layers from {}...", safetensors_file_name);
-        let hashed_layers_result = download_and_hash_layers(model_id, safetensors_file_name);
-        // If no results are returned, skip this file
-        if hashed_layers_result.is_empty() {
-            println!("{} skipped due to invalid header length", model_id);
-            continue;
+
+        // Merge the results together if there are multiple
+        let mut output_result: Map<String, Value> = Map::new();
+        if file_results.len() == 1 {
+            // TODO: Not sure if there's an idiomatic way to avoid this clone
+            output_result = file_results.first().unwrap().clone()
+        } else {
+            for result in file_results.iter() {
+                for (key, value) in result {
+                    // TODO: Another clone which feels like it can be avoided
+                    output_result.insert(key.to_string(), value.clone());
+                }
+            }
         }
+
         fs::create_dir_all(hashes_file_path.0).unwrap();
         let file = File::create(hashes_file_path.1).unwrap();
         println!("Outputting hash results...");
-        serde_json::to_writer_pretty(file, &hashed_layers_result).unwrap();
+        serde_json::to_writer_pretty(file, &output_result).unwrap();
     }
 }
 
