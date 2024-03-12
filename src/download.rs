@@ -133,12 +133,6 @@ pub fn par_download_layers(
 
     // Setup the reqwest client to enable connection pooling
     let client = Client::new();
-    // Setup spinners
-    let sty_aux = ProgressStyle::with_template(
-        "[{elapsed_precise}] {bar:20.cyan/blue} {pos:>8}/{len:8}B {msg}",
-    )
-    .unwrap()
-    .progress_chars("#*-");
 
     // Iterate over each tensor and download it
     // Only download the layers in the allow list, if it is available
@@ -182,7 +176,12 @@ pub fn par_download_layers(
     sorted_layers.into_par_iter().map(move |layer| {
         let client = &client;
         let pb = mp.add(ProgressBar::new(layer.size));
-        pb.set_style(sty_aux.clone());
+        pb.set_style(
+            ProgressStyle::with_template(
+                "[{elapsed_precise}] {bar:20.cyan/blue} {pos:>8}/{len:8}B {msg}",
+            )
+            .unwrap(),
+        );
         pb.enable_steady_tick(Duration::from_millis(200));
         pb.set_message(layer.name.to_string());
 
