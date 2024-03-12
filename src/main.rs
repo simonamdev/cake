@@ -149,9 +149,9 @@ fn run_hashing_experiment() {
 
             println!(
                 "[File {}/{}] Downloading model layers from {}",
-                file_name,
                 file_index,
-                file_names.as_array().unwrap().len()
+                file_names.as_array().unwrap().len(),
+                file_name,
             );
             let hashed_layers_result = download_and_hash_layers(model_id, &file_name);
             // If no results are returned, skip this file
