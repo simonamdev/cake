@@ -9,7 +9,7 @@ use rayon::iter::ParallelIterator;
 use serde_json::{json, Map, Value};
 
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
-use lz4::block::{compress};
+use lz4::block::compress;
 
 mod compare;
 mod download;
@@ -57,7 +57,7 @@ fn main() {
             // Known issue: using this will not create an equivalent file to that available on huggingface due to
             // differences in how the json header is formatted, however it will create a valid safetensors file
             // Known issue: only works for models with a single file called "model.safetensors"
-            download::download_safetensors_file_by_model_id(&model_id)
+            download::download_safetensors_file_by_model_id(model_id)
         }
         Some(Commands::CheckModels {}) => {
             // Get the model ids and file names from the JSON file
@@ -81,7 +81,7 @@ fn main() {
                         model_id,
                         file_name
                     );
-                    let model_parts: Vec<&str> = model_id.split("/").collect();
+                    let model_parts: Vec<&str> = model_id.split('/').collect();
                     let hashes_file_path =
                         get_hashes_file_dir_and_path(model_parts[0], model_parts[1]);
                     let hashes_file_path_clone = hashes_file_path.1.clone();
@@ -123,14 +123,14 @@ fn run_hashing_experiment() {
             );
             continue;
         }
-        if file_names.as_array().unwrap().len() == 0 {
+        if file_names.as_array().unwrap().is_empty() {
             println!("{} skipped due to no files", model_id);
             continue;
         }
         let safetensors_file_name = file_names
             .as_array()
             .unwrap()
-            .get(0)
+            .first()
             .unwrap()
             .as_str()
             .unwrap();
@@ -142,7 +142,7 @@ fn run_hashing_experiment() {
             );
             continue;
         }
-        let model_parts: Vec<&str> = model_id.split("/").collect();
+        let model_parts: Vec<&str> = model_id.split('/').collect();
         let hashes_file_path = get_hashes_file_dir_and_path(model_parts[0], model_parts[1]);
         let hashes_file_path_clone = hashes_file_path.1.clone();
         let hashes_file_exists = fs::metadata(hashes_file_path_clone).is_ok();
@@ -153,7 +153,7 @@ fn run_hashing_experiment() {
         println!("Downloading model layers from {}...", safetensors_file_name);
         let hashed_layers_result = download_and_hash_layers(model_id, safetensors_file_name);
         // If no results are returned, skip this file
-        if hashed_layers_result.len() == 0 {
+        if hashed_layers_result.is_empty() {
             println!("{} skipped due to invalid header length", model_id);
             continue;
         }
@@ -188,41 +188,44 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
     let url = download::get_download_url_from_model_id(model_id, file_name);
     let (header, header_length) = download::download_safetensors_header(&url);
     if header_length == 0 {
-        return result_obj
+        return result_obj;
     }
 
     // Setup the progress bars
-    let main_bar = ProgressBar::new(header.as_object().unwrap().len() as u64)
-        .with_style(ProgressStyle::with_template("[{elapsed_precise}] {bar:20.green/yellow} {pos:>4}/{len:4} {spinner:.blue} {msg}").unwrap());
+    let main_bar = ProgressBar::new(header.as_object().unwrap().len() as u64).with_style(
+        ProgressStyle::with_template(
+            "[{elapsed_precise}] {bar:20.green/yellow} {pos:>4}/{len:4} {spinner:.blue} {msg}",
+        )
+        .unwrap(),
+    );
     main_bar.enable_steady_tick(Duration::from_millis(500));
     let main_bar_clone = main_bar.clone();
     let mp: MultiProgress = MultiProgress::new();
     mp.add(main_bar);
 
-    let layers_metadata: Vec<LayerMetadata> =
-        download::par_download_layers(header, url, None, mp)
-            .map(|(layer, tensor)| {
-                // Perform the hashing part for uncompressed version
-                main_bar_clone.set_message(format!("Hashing: {}", layer.name));
-                let hash = hash::sha256_hash(&tensor);
-                // Perform the hashing part for compressed version
-                // Compress the tensor
-                main_bar_clone.set_message(format!("Compressing: {}", layer.name));
-                let compressed_tensor = compress(&tensor, None, false).unwrap();
-                main_bar_clone.set_message(format!("Hashing Compressed: {}", layer.name));
-                let compressed_hash = hash::sha256_hash(&compressed_tensor);
-                main_bar_clone.inc(1);
-                main_bar_clone.set_message("Waiting...");
+    let layers_metadata: Vec<LayerMetadata> = download::par_download_layers(header, url, None, mp)
+        .map(|(layer, tensor)| {
+            // Perform the hashing part for uncompressed version
+            main_bar_clone.set_message(format!("Hashing: {}", layer.name));
+            let hash = hash::sha256_hash(&tensor);
+            // Perform the hashing part for compressed version
+            // Compress the tensor
+            main_bar_clone.set_message(format!("Compressing: {}", layer.name));
+            let compressed_tensor = compress(&tensor, None, false).unwrap();
+            main_bar_clone.set_message(format!("Hashing Compressed: {}", layer.name));
+            let compressed_hash = hash::sha256_hash(&compressed_tensor);
+            main_bar_clone.inc(1);
+            main_bar_clone.set_message("Waiting...");
 
-                LayerMetadata{
-                    layer,
-                    hash,
-                    size: tensor.len() as u64,
-                    compressed_hash,
-                    compressed_size: compressed_tensor.len() as u64
-                }
-            })
-            .collect();
+            LayerMetadata {
+                layer,
+                hash,
+                size: tensor.len() as u64,
+                compressed_hash,
+                compressed_size: compressed_tensor.len() as u64,
+            }
+        })
+        .collect();
 
     main_bar_clone.finish_with_message("All done!");
 
@@ -246,10 +249,10 @@ fn get_hashes_file_dir_and_path(model_account: &str, model_name: &str) -> (Strin
         .to_string_lossy()
         .into_owned()
         .clone()
-        + &"/results/".to_owned()
-        + &model_account
+        + "/results/"
+        + model_account
         + "/"
-        + &model_name;
+        + model_name;
     let target_file_path = abs_dir.to_owned() + "/hashes.json";
 
     (abs_dir, target_file_path)

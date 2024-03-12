@@ -1,0 +1,46 @@
+name: Pull Request Checks
+on:
+  pull_request:
+
+env:
+  RUSTFLAGS: "-Dwarnings"
+
+jobs:
+  check-compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo check
+  fmt:
+    needs:
+      - check-compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo fmt --check
+  clippy:
+    needs:
+      - check-compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo clippy --all-targets --all-features
+  # cargo-deny:
+  #   needs:
+  #     - check-compile
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: EmbarkStudios/cargo-deny-action@v1
+  all-checks-passed:
+    if: success()
+    needs:
+      - fmt
+      - clippy
+      # - cargo-deny
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "All checks passed!"
