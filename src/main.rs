@@ -111,10 +111,9 @@ fn run_hashing_experiment() {
 
     let json: Value = serde_json::from_str(&models_json_str).unwrap();
     let mut model_index = 0;
-    let mut file_index = 0;
     for (model_id, file_names) in json.as_object().unwrap() {
+        let mut file_index = 1;
         model_index += 1;
-        file_index += 1;
         println!(
             "{}/{}: {}. File {} of {}",
             model_index,
@@ -130,6 +129,12 @@ fn run_hashing_experiment() {
 
         let model_parts: Vec<&str> = model_id.split('/').collect();
         let hashes_file_path = get_hashes_file_dir_and_path(model_parts[0], model_parts[1]);
+        let hashes_file_path_clone = hashes_file_path.1.clone();
+        let hashes_file_exists = fs::metadata(hashes_file_path_clone).is_ok();
+        if hashes_file_exists {
+            println!("{} skipped as hashes file already exists", model_id);
+            continue;
+        }
 
         // Download each file separately and then merge the results if there are multiple files
         let mut file_results: Vec<Map<String, Value>> = Vec::new();
@@ -144,12 +149,6 @@ fn run_hashing_experiment() {
                 continue;
             }
 
-            let hashes_file_path_clone = hashes_file_path.1.clone();
-            let hashes_file_exists = fs::metadata(hashes_file_path_clone).is_ok();
-            if hashes_file_exists {
-                println!("{} skipped as hashes file already exists", model_id);
-                continue;
-            }
             println!("Downloading model layers from {}...", file_name);
             let hashed_layers_result = download_and_hash_layers(model_id, &file_name);
             // If no results are returned, skip this file
@@ -158,6 +157,7 @@ fn run_hashing_experiment() {
                 continue;
             }
             file_results.push(hashed_layers_result);
+            file_index += 1;
         }
 
         // Merge the results together if there are multiple
@@ -205,6 +205,8 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
     let url = download::get_download_url_from_model_id(model_id, file_name);
     let (header, header_length) = download::download_safetensors_header(&url);
     if header_length == 0 {
+        println!("No header returned!");
+        println!("{}", header);
         return result_obj;
     }
 

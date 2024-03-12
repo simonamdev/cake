@@ -129,6 +129,8 @@ pub fn par_download_layers(
     tensor_names_allow_list: Option<Vec<String>>,
     mp: MultiProgress,
 ) -> impl ParallelIterator<Item = (Layer, Vec<u8>)> {
+    // print!("{}", header);
+
     // Setup the reqwest client to enable connection pooling
     let client = Client::new();
     // Setup spinners
@@ -151,7 +153,7 @@ pub fn par_download_layers(
             if let Some(tnal) = &tensor_names_allow_list {
                 tnal.contains(data.0)
             } else {
-                false
+                true
             }
         })
         .map(|(name, metadata)| {
@@ -170,9 +172,12 @@ pub fn par_download_layers(
             }
         })
         .collect();
+    // println!("{:?}", layers);
 
     let mut sorted_layers = layers.clone();
     sorted_layers.sort_by(|a: &Layer, b: &Layer| b.size.cmp(&a.size));
+
+    // println!("{:?}", sorted_layers);
 
     sorted_layers.into_par_iter().map(move |layer| {
         let client = &client;
