@@ -110,10 +110,19 @@ fn run_hashing_experiment() {
     file.read_to_string(&mut models_json_str).unwrap();
 
     let json: Value = serde_json::from_str(&models_json_str).unwrap();
-    let mut i = 0;
+    let mut model_index = 0;
+    let mut file_index = 0;
     for (model_id, file_names) in json.as_object().unwrap() {
-        i += 1;
-        println!("{}/{}: {}", i, json.as_object().unwrap().len(), model_id);
+        model_index += 1;
+        file_index += 1;
+        println!(
+            "{}/{}: {}. File {} of {}",
+            model_index,
+            json.as_object().unwrap().len(),
+            model_id,
+            file_index,
+            file_names.as_array().unwrap().len()
+        );
         if file_names.as_array().unwrap().is_empty() {
             println!("{} skipped due to no files", model_id);
             continue;
