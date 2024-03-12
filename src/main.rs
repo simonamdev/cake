@@ -115,12 +115,10 @@ fn run_hashing_experiment() {
         let mut file_index = 1;
         model_index += 1;
         println!(
-            "{}/{}: {}. File {} of {}",
+            "{}/{}: {}.",
             model_index,
             json.as_object().unwrap().len(),
             model_id,
-            file_index,
-            file_names.as_array().unwrap().len()
         );
         if file_names.as_array().unwrap().is_empty() {
             println!("{} skipped due to no files", model_id);
@@ -149,7 +147,7 @@ fn run_hashing_experiment() {
                 continue;
             }
 
-            println!("Downloading model layers from {}...", file_name);
+            println!("[File {}/{}] Downloading model layers from {}", file_name, file_index, file_names.as_array().unwrap().len());
             let hashed_layers_result = download_and_hash_layers(model_id, &file_name);
             // If no results are returned, skip this file
             if hashed_layers_result.is_empty() {
