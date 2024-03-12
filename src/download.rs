@@ -210,7 +210,6 @@ pub fn download_safetensors_header(url: &str) -> (serde_json::Value, u64) {
     // println!("{:?}", header_length_bytes);
     let json_header_length = get_u64_from_u8_vec(header_length_bytes);
 
-<<<<<<< HEAD
     match json_header_length {
         Some(jhl) => {
             println!("JSON header is {jhl} bytes long");
@@ -230,19 +229,6 @@ pub fn download_safetensors_header(url: &str) -> (serde_json::Value, u64) {
             return (json!({}), 0)
         }
     }
-=======
-    println!("JSON header is {json_header_length} bytes long");
-
-    let header_bytes: Vec<u8> = download_part_of_file(url, 8, json_header_length, None).unwrap();
-    let json_string = String::from_utf8_lossy(&header_bytes);
-    // println!("{:}", json_string);
-    // println!("{}", json_header_length);
-    // println!("{}", json_string.len());
-    // println!("{}", header_bytes.len());
-    let metadata_json: serde_json::Value = serde_json::from_str(&json_string).unwrap();
-
-    (metadata_json, json_header_length)
->>>>>>> f294866 (Implement Clippy suggestions)
 }
 
 fn get_u64_from_u8_vec(bytes: Vec<u8>) -> Option<u64> {
