@@ -1,14 +1,14 @@
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use rayon::iter::ParallelIterator;
+use rayon::prelude::*;
 use reqwest::{blocking::Client, Error};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::fs::{self, metadata, File};
 use std::io::prelude::*;
+use std::io::Read;
 use std::path::PathBuf;
 use std::time::Duration;
-use std::io::Read;
-use rayon::prelude::*;
 
 use crate::export;
 use crate::Layer;
@@ -183,8 +183,14 @@ pub fn par_download_layers(
 
         // Download the tensor
         // println!("{}: Downloading {}...", model_id, tensor_name);
-        let tensor: Vec<u8> =
-            download_tensor(&url, layer.offset_start, layer.offset_end, client, Some(pb.clone())).unwrap(); // Handle unwrap better
+        let tensor: Vec<u8> = download_tensor(
+            &url,
+            layer.offset_start,
+            layer.offset_end,
+            client,
+            Some(pb.clone()),
+        )
+        .unwrap(); // Handle unwrap better
         pb.finish_and_clear();
         (layer.clone(), tensor)
     })
@@ -213,21 +219,18 @@ pub fn download_safetensors_header(url: &str) -> (serde_json::Value, u64) {
     match json_header_length {
         Some(jhl) => {
             println!("JSON header is {jhl} bytes long");
-        
-            let header_bytes: Vec<u8> =
-                download_part_of_file(url, 8, jhl, &client, None).unwrap();
+
+            let header_bytes: Vec<u8> = download_part_of_file(url, 8, jhl, &client, None).unwrap();
             let json_string = String::from_utf8_lossy(&header_bytes);
             // println!("{:}", json_string);
             // println!("{}", json_header_length);
             // println!("{}", json_string.len());
             // println!("{}", header_bytes.len());
             let metadata_json: serde_json::Value = serde_json::from_str(&json_string).unwrap();
-        
-            return (metadata_json, jhl)
+
+            (metadata_json, jhl)
         }
-        None => {
-            return (json!({}), 0)
-        }
+        None => (json!({}), 0),
     }
 }
 
