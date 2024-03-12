@@ -253,6 +253,7 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
             "compressed_hash": layer_metadata.compressed_hash,
             "size": layer_metadata.size,
             "compressed_size": layer_metadata.compressed_size,
+            "file_name": file_name,
         });
         result_obj.insert(layer_metadata.layer.name, tensor_result);
     }
