@@ -147,7 +147,12 @@ fn run_hashing_experiment() {
                 continue;
             }
 
-            println!("[File {}/{}] Downloading model layers from {}", file_name, file_index, file_names.as_array().unwrap().len());
+            println!(
+                "[File {}/{}] Downloading model layers from {}",
+                file_name,
+                file_index,
+                file_names.as_array().unwrap().len()
+            );
             let hashed_layers_result = download_and_hash_layers(model_id, &file_name);
             // If no results are returned, skip this file
             if hashed_layers_result.is_empty() {
