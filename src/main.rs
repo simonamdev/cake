@@ -197,7 +197,7 @@ struct LayerMetadata {
     hash: String,
     size: u64,
     compressed_hash: String,
-    compressed_size: u64,
+    compressed_size: i64,
 }
 
 fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Value> {
@@ -233,9 +233,19 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
             // Perform the hashing part for compressed version
             // Compress the tensor
             main_bar_clone.set_message(format!("Compressing: {}", layer.name));
-            let compressed_tensor = compress(&tensor, None, false).unwrap();
+            let compressed_tensor = compress(&tensor, None, false);
             main_bar_clone.set_message(format!("Hashing Compressed: {}", layer.name));
-            let compressed_hash = hash::sha256_hash(&compressed_tensor);
+            let mut compressed_hash: String = "N/A".to_string();
+            let mut compressed_size: i64 = -1;
+            match compressed_tensor {
+                Ok(ct) => {
+                    compressed_hash = hash::sha256_hash(&ct);
+                    compressed_size = ct.len() as i64;
+                }
+                Err(_e) => {
+
+                }
+            }
             main_bar_clone.inc(1);
             main_bar_clone.set_message("Waiting...");
 
@@ -244,7 +254,7 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
                 hash,
                 size: tensor.len() as u64,
                 compressed_hash,
-                compressed_size: compressed_tensor.len() as u64,
+                compressed_size: compressed_size
             }
         })
         .collect();
