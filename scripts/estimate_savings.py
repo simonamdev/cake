@@ -26,7 +26,7 @@ def calculate_byte_content(result_file_paths):
             layer_hash = tensor_metadata['hash']
             offsets = tensor_metadata['data_offsets']
             # Not all files support this yet
-            byte_count = tensor_metadata['size']
+            # byte_count = tensor_metadata['size']
             byte_count = offsets[1] - offsets[0]
 
             file_byte_count += byte_count
