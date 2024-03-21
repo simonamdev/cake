@@ -8546,23 +8546,6 @@
     "model-00005-of-00006.safetensors",
     "model-00006-of-00006.safetensors"
   ],
-  "LAYEK-143/LLAMA": [
-    "model-00001-of-00015.safetensors",
-    "model-00002-of-00015.safetensors",
-    "model-00003-of-00015.safetensors",
-    "model-00004-of-00015.safetensors",
-    "model-00005-of-00015.safetensors",
-    "model-00006-of-00015.safetensors",
-    "model-00007-of-00015.safetensors",
-    "model-00008-of-00015.safetensors",
-    "model-00009-of-00015.safetensors",
-    "model-00010-of-00015.safetensors",
-    "model-00011-of-00015.safetensors",
-    "model-00012-of-00015.safetensors",
-    "model-00013-of-00015.safetensors",
-    "model-00014-of-00015.safetensors",
-    "model-00015-of-00015.safetensors"
-  ],
   "TheBloke/Llama-2-PeanutButter_v19_R8-7B-GPTQ": [
     "model.safetensors"
   ],
@@ -21664,11 +21647,6 @@
   ],
   "NurtureAI/dolphin-2.2.1-mistral-7b-16k-AWQ": [
     "model.safetensors"
-  ],
-  "Greich/linkedin_model_v2": [
-    "model-00001-of-00003.safetensors",
-    "model-00002-of-00003.safetensors",
-    "model-00003-of-00003.safetensors"
   ],
   "joyfine/vicuna-7b-fine-tuning_Twitter_20": [
     "model-00001-of-00003.safetensors",
