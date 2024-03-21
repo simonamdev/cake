@@ -26,12 +26,15 @@ def calculate_byte_content(result_file_paths):
             layer_hash = tensor_metadata['hash']
             offsets = tensor_metadata['data_offsets']
             # Not all files support this yet
-            # byte_count = tensor_metadata['size']
+            byte_count = tensor_metadata['size']
             byte_count = offsets[1] - offsets[0]
 
             file_byte_count += byte_count
             if 'compressed_size' in tensor_metadata:
-                file_byte_count_compressed += tensor_metadata['compressed_size']
+                if tensor_metadata['compressed_size'] < tensor_metadata['size']:
+                    file_byte_count_compressed += tensor_metadata['compressed_size']
+                else:
+                    file_byte_count_compressed += tensor_metadata['size']
 
             if layer_hash in tracked_layer_hashes:
                 duple_layer_count += 1
