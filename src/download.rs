@@ -22,6 +22,9 @@ pub fn get_download_url_from_model_id(model_id: &str, file_name: &str) -> String
 }
 
 pub fn download_safetensors_file_by_model_id(model_id: &str) {
+    // Query the HF API to see the file names
+    // TODO: Filter specifically for *.safetensors files
+    
     // TODO: Support models with multiple files or files that aren't "model.safetensors"
     let url = &get_download_url_from_model_id(model_id, "model.safetensors");
     let download_folder: &str = "./download";

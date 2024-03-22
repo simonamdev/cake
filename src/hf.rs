@@ -1,7 +1,7 @@
 use reqwest::{blocking::Client};
 use serde_json;
 use std::collections::HashMap;
-use anyhow::{Error};
+use anyhow::{Error, Ok};
 
 use serde::{Deserialize, Serialize};
 
@@ -103,4 +103,21 @@ mod tests {
         // Compare expected with actual
         assert_eq!(expected_model_info, actual_model_info);
     }
+}
+
+pub fn get_model_files(model_id: &str) -> Result<ModelInfo, Error> {
+    // TODO: setup headers?
+    let client = Client::new();
+
+    // TODO: handle non-main revisions in future
+    let url = format!("https://huggingface.co/api/models/{}/paths-info/main", model_id);
+
+    let response = client.post(url).send()?;
+
+    let body = response.text().unwrap();
+
+    // TODO: Handle malformed JSON better
+    let result = fill_model_info_from_json(&body).unwrap();
+
+    Ok(result)
 }
