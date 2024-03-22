@@ -15,6 +15,7 @@ mod compare;
 mod download;
 mod export;
 mod hash;
+mod hf;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
