@@ -242,9 +242,7 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
                     compressed_hash = hash::sha256_hash(&ct);
                     compressed_size = ct.len() as i64;
                 }
-                Err(_e) => {
-
-                }
+                Err(_e) => {}
             }
             main_bar_clone.inc(1);
             main_bar_clone.set_message("Waiting...");
@@ -254,7 +252,7 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
                 hash,
                 size: tensor.len() as u64,
                 compressed_hash,
-                compressed_size: compressed_size
+                compressed_size,
             }
         })
         .collect();
