@@ -129,14 +129,10 @@ pub fn par_download_layers(
     tensor_names_allow_list: Option<Vec<String>>,
     mp: MultiProgress,
 ) -> impl ParallelIterator<Item = (Layer, Vec<u8>)> {
+    // print!("{}", header);
+
     // Setup the reqwest client to enable connection pooling
     let client = Client::new();
-    // Setup spinners
-    let sty_aux = ProgressStyle::with_template(
-        "[{elapsed_precise}] {bar:20.cyan/blue} {pos:>8}/{len:8}B {msg}",
-    )
-    .unwrap()
-    .progress_chars("#*-");
 
     // Iterate over each tensor and download it
     // Only download the layers in the allow list, if it is available
@@ -151,7 +147,7 @@ pub fn par_download_layers(
             if let Some(tnal) = &tensor_names_allow_list {
                 tnal.contains(data.0)
             } else {
-                false
+                true
             }
         })
         .map(|(name, metadata)| {
@@ -170,14 +166,22 @@ pub fn par_download_layers(
             }
         })
         .collect();
+    // println!("{:?}", layers);
 
     let mut sorted_layers = layers.clone();
     sorted_layers.sort_by(|a: &Layer, b: &Layer| b.size.cmp(&a.size));
 
+    // println!("{:?}", sorted_layers);
+
     sorted_layers.into_par_iter().map(move |layer| {
         let client = &client;
         let pb = mp.add(ProgressBar::new(layer.size));
-        pb.set_style(sty_aux.clone());
+        pb.set_style(
+            ProgressStyle::with_template(
+                "[{elapsed_precise}] {bar:20.cyan/blue} {pos:>8}/{len:8}B {msg}",
+            )
+            .unwrap(),
+        );
         pb.enable_steady_tick(Duration::from_millis(200));
         pb.set_message(layer.name.to_string());
 

@@ -110,38 +110,21 @@ fn run_hashing_experiment() {
     file.read_to_string(&mut models_json_str).unwrap();
 
     let json: Value = serde_json::from_str(&models_json_str).unwrap();
-    let mut i = 0;
+    let mut model_index = 0;
     for (model_id, file_names) in json.as_object().unwrap() {
-        i += 1;
-        println!("{}/{}: {}", i, json.as_object().unwrap().len(), model_id);
-        // For now, handle only models with a single file, for simplicity
-        // TODO: Handle multi file models!
-        if file_names.as_array().unwrap().len() > 1 {
-            println!(
-                "{} skipped due to multiple safetensors files. (temporary limitation)",
-                model_id
-            );
-            continue;
-        }
+        let mut file_index = 1;
+        model_index += 1;
+        println!(
+            "{}/{}: {}.",
+            model_index,
+            json.as_object().unwrap().len(),
+            model_id,
+        );
         if file_names.as_array().unwrap().is_empty() {
             println!("{} skipped due to no files", model_id);
             continue;
         }
-        let safetensors_file_name = file_names
-            .as_array()
-            .unwrap()
-            .first()
-            .unwrap()
-            .as_str()
-            .unwrap();
-        // For now skip adapter models as they are not being parsed correctly
-        if safetensors_file_name.contains("adapter_model") {
-            println!(
-                "{} skipped due to being an adapter model file (temporary limitation)",
-                model_id
-            );
-            continue;
-        }
+
         let model_parts: Vec<&str> = model_id.split('/').collect();
         let hashes_file_path = get_hashes_file_dir_and_path(model_parts[0], model_parts[1]);
         let hashes_file_path_clone = hashes_file_path.1.clone();
@@ -150,17 +133,54 @@ fn run_hashing_experiment() {
             println!("{} skipped as hashes file already exists", model_id);
             continue;
         }
-        println!("Downloading model layers from {}...", safetensors_file_name);
-        let hashed_layers_result = download_and_hash_layers(model_id, safetensors_file_name);
-        // If no results are returned, skip this file
-        if hashed_layers_result.is_empty() {
-            println!("{} skipped due to invalid header length", model_id);
-            continue;
+
+        // Download each file separately and then merge the results if there are multiple files
+        let mut file_results: Vec<Map<String, Value>> = Vec::new();
+        for file_name_val in file_names.as_array().unwrap() {
+            let file_name = file_name_val.as_str().unwrap().to_string();
+            // For now skip adapter models as they are not being parsed correctly
+            if file_name.contains("adapter_model") {
+                println!(
+                    "{} skipped due to being an adapter model file (temporary limitation)",
+                    model_id
+                );
+                continue;
+            }
+
+            println!(
+                "[File {}/{}] Downloading model layers from {}",
+                file_index,
+                file_names.as_array().unwrap().len(),
+                file_name,
+            );
+            let hashed_layers_result = download_and_hash_layers(model_id, &file_name);
+            // If no results are returned, skip this file
+            if hashed_layers_result.is_empty() {
+                println!("{} skipped due to invalid header length", model_id);
+                continue;
+            }
+            file_results.push(hashed_layers_result);
+            file_index += 1;
         }
+
+        // Merge the results together if there are multiple
+        let mut output_result: Map<String, Value> = Map::new();
+        if file_results.len() == 1 {
+            // TODO: Not sure if there's an idiomatic way to avoid this clone
+            output_result = file_results.first().unwrap().clone()
+        } else {
+            for result in file_results.iter() {
+                for (key, value) in result {
+                    // TODO: Another clone which feels like it can be avoided
+                    output_result.insert(key.to_string(), value.clone());
+                }
+            }
+        }
+
         fs::create_dir_all(hashes_file_path.0).unwrap();
         let file = File::create(hashes_file_path.1).unwrap();
         println!("Outputting hash results...");
-        serde_json::to_writer_pretty(file, &hashed_layers_result).unwrap();
+        serde_json::to_writer_pretty(file, &output_result).unwrap();
     }
 }
 
@@ -177,7 +197,7 @@ struct LayerMetadata {
     hash: String,
     size: u64,
     compressed_hash: String,
-    compressed_size: u64,
+    compressed_size: i64,
 }
 
 fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Value> {
@@ -188,6 +208,8 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
     let url = download::get_download_url_from_model_id(model_id, file_name);
     let (header, header_length) = download::download_safetensors_header(&url);
     if header_length == 0 {
+        println!("No header returned!");
+        println!("{}", header);
         return result_obj;
     }
 
@@ -211,9 +233,17 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
             // Perform the hashing part for compressed version
             // Compress the tensor
             main_bar_clone.set_message(format!("Compressing: {}", layer.name));
-            let compressed_tensor = compress(&tensor, None, false).unwrap();
+            let compressed_tensor = compress(&tensor, None, false);
             main_bar_clone.set_message(format!("Hashing Compressed: {}", layer.name));
-            let compressed_hash = hash::sha256_hash(&compressed_tensor);
+            let mut compressed_hash: String = "N/A".to_string();
+            let mut compressed_size: i64 = -1;
+            match compressed_tensor {
+                Ok(ct) => {
+                    compressed_hash = hash::sha256_hash(&ct);
+                    compressed_size = ct.len() as i64;
+                }
+                Err(_e) => {}
+            }
             main_bar_clone.inc(1);
             main_bar_clone.set_message("Waiting...");
 
@@ -222,7 +252,7 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
                 hash,
                 size: tensor.len() as u64,
                 compressed_hash,
-                compressed_size: compressed_tensor.len() as u64,
+                compressed_size,
             }
         })
         .collect();
@@ -236,6 +266,7 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
             "compressed_hash": layer_metadata.compressed_hash,
             "size": layer_metadata.size,
             "compressed_size": layer_metadata.compressed_size,
+            "file_name": file_name,
         });
         result_obj.insert(layer_metadata.layer.name, tensor_result);
     }
