@@ -27040,11 +27040,6 @@
     "output-00001-of-00002.safetensors",
     "output-00002-of-00002.safetensors"
   ],
-  "LoneStriker/nontoxic-bagel-34b-v0.2-4.0bpw-h6-exl2": [
-    "output-00001-of-00003.safetensors",
-    "output-00002-of-00003.safetensors",
-    "output-00003-of-00003.safetensors"
-  ],
   "LoneStriker/nontoxic-bagel-34b-v0.2-4.65bpw-h6-exl2": [
     "output-00001-of-00003.safetensors",
     "output-00002-of-00003.safetensors",
@@ -35653,14 +35648,6 @@
   "PsiPi/taozi555_MythoMax-Kimiko-Mix-exl2-4.85bpw": [
     "output.safetensors"
   ],
-  "Puluming/AISquare-Instruct-llama2-koen-13b-v0.9.1": [
-    "model-00001-of-00006.safetensors",
-    "model-00002-of-00006.safetensors",
-    "model-00003-of-00006.safetensors",
-    "model-00004-of-00006.safetensors",
-    "model-00005-of-00006.safetensors",
-    "model-00006-of-00006.safetensors"
-  ],
   "Puluming/AISquare-Instruct-llama2-koen-13b-v0.9.15": [
     "model-00001-of-00006.safetensors",
     "model-00002-of-00006.safetensors",
@@ -43477,13 +43464,6 @@
   ],
   "TheBloke/DiscoLM-70B-GPTQ": [
     "model.safetensors"
-  ],
-  "TheBloke/DiscoLM-mixtral-8x7b-v2-GPTQ": [
-    "model-00001-of-00005.safetensors",
-    "model-00002-of-00005.safetensors",
-    "model-00003-of-00005.safetensors",
-    "model-00004-of-00005.safetensors",
-    "model-00005-of-00005.safetensors"
   ],
   "TheBloke/DiscoLM_German_7b_v1-AWQ": [
     "model.safetensors"
@@ -55815,10 +55795,6 @@
     "model-00002-of-00004.safetensors",
     "model-00003-of-00004.safetensors",
     "model-00004-of-00004.safetensors"
-  ],
-  "afterpartyjohn/test1": [
-    "model-00001-of-00002.safetensors",
-    "model-00002-of-00002.safetensors"
   ],
   "afwefwrgpknp/mistral-7b-mj-finetuned": [
     "adapter_model.safetensors",
