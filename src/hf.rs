@@ -1,7 +1,7 @@
-use reqwest::{blocking::Client};
+use anyhow::{Error, Ok};
+use reqwest::blocking::Client;
 use serde_json;
 use std::collections::HashMap;
-use anyhow::{Error, Ok};
 
 use serde::{Deserialize, Serialize};
 
@@ -24,7 +24,7 @@ pub struct ModelInfo {
     widget_data: Option<String>, // Change this to appropriate type
     model_index: Option<HashMap<String, String>>, // Change this to appropriate type
     config: Option<HashMap<String, String>>, // Change this to appropriate type
-    // Add more fields as needed
+                                 // Add more fields as needed
 }
 
 fn fill_model_info_from_json(json_string: &str) -> Result<ModelInfo, Error> {
@@ -37,7 +37,10 @@ pub fn get_model_info(model_id: &str) -> Result<ModelInfo, Error> {
     let client = Client::new();
 
     // TODO: handle non-main revisions in future
-    let url = format!("https://huggingface.co/api/models/{}/revision/main", model_id);
+    let url = format!(
+        "https://huggingface.co/api/models/{}/revision/main",
+        model_id
+    );
 
     let response = client.get(url).send()?;
 
@@ -60,17 +63,21 @@ pub struct FileInfo {
     // security: Option<BlobSecurityInfo>,
 }
 
-fn fill_file_info_from_json(json_string: &str) -> Result<FileInfo, Error> {
-    let file_info: FileInfo = serde_json::from_str(json_string)?;
-    Ok(file_info)
+// TODO: Support FolderInfo
+fn fill_file_info_from_json(json_string: &str) -> Result<Vec<FileInfo>, Error> {
+    let file_infos: Vec<FileInfo> = serde_json::from_str(json_string)?;
+    Ok(file_infos)
 }
 
-pub fn get_model_files(model_id: &str) -> Result<FileInfo, Error> {
+pub fn get_model_files(model_id: &str) -> Result<Vec<FileInfo>, Error> {
     // TODO: setup headers?
     let client = Client::new();
 
     // TODO: handle non-main revisions in future
-    let url = format!("https://huggingface.co/api/models/{}/paths-info/main", model_id);
+    let url = format!(
+        "https://huggingface.co/api/models/{}/paths-info/main",
+        model_id
+    );
 
     let response = client.post(url).send()?;
 
@@ -127,8 +134,16 @@ mod tests {
             pipeline_tag: Some("pipeline_tag".to_string()),
             mask_token: Some("mask_token".to_string()),
             widget_data: Some("widget_data".to_string()),
-            model_index: Some(vec![("key".to_string(), "value".to_string())].into_iter().collect()),
-            config: Some(vec![("key".to_string(), "value".to_string())].into_iter().collect()),
+            model_index: Some(
+                vec![("key".to_string(), "value".to_string())]
+                    .into_iter()
+                    .collect(),
+            ),
+            config: Some(
+                vec![("key".to_string(), "value".to_string())]
+                    .into_iter()
+                    .collect(),
+            ),
         };
 
         // Parse JSON and fill the struct
@@ -141,25 +156,43 @@ mod tests {
     #[test]
     fn test_fill_file_info_from_json() {
         // Mock JSON string for testing
-        let json_string = r#"{
-            "path": "file/path/example.txt",
-            "size": 1024,
-            "blob_id": "abcdef123456"
-        }"#;
+        let json_string = r#"[
+            {
+                "path": "file/path/example1.txt",
+                "size": 1024,
+                "blob_id": "abcdef123456"
+            },
+            {
+                "path": "file/path/example2.txt",
+                "size": 2048,
+                "blob_id": "123456abcdef"
+            }
+        ]"#;
 
         // Expected FileInfo struct
-        let expected_file_info = FileInfo {
-            path: "file/path/example.txt".to_string(),
-            size: 1024,
-            blob_id: "abcdef123456".to_string(),
-        };
+        let expected_file_infos = vec![
+            FileInfo {
+                path: "file/path/example1.txt".to_string(),
+                size: 1024,
+                blob_id: "abcdef123456".to_string(),
+            },
+            FileInfo {
+                path: "file/path/example2.txt".to_string(),
+                size: 2048,
+                blob_id: "123456abcdef".to_string(),
+            },
+        ];
 
         // Parse JSON and fill the struct
-        let actual_file_info: FileInfo = serde_json::from_str(json_string).unwrap();
+        let actual_file_infos: Vec<FileInfo> = serde_json::from_str(json_string).unwrap();
 
         // Compare expected with actual
-        assert_eq!(expected_file_info.path, actual_file_info.path);
-        assert_eq!(expected_file_info.size, actual_file_info.size);
-        assert_eq!(expected_file_info.blob_id, actual_file_info.blob_id);
+        assert_eq!(expected_file_infos[0].path, actual_file_infos[0].path);
+        assert_eq!(expected_file_infos[0].size, actual_file_infos[0].size);
+        assert_eq!(expected_file_infos[0].blob_id, actual_file_infos[0].blob_id);
+
+        assert_eq!(expected_file_infos[1].path, actual_file_infos[1].path);
+        assert_eq!(expected_file_infos[1].size, actual_file_infos[1].size);
+        assert_eq!(expected_file_infos[1].blob_id, actual_file_infos[1].blob_id);
     }
 }
