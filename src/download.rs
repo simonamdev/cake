@@ -98,10 +98,17 @@ pub fn download_safetensors_file_by_model_id(model_id: &str) {
             Some(model_layers_to_download),
             mp,
         )
-        .for_each(|(layer, layer_bytes)| {
+        .map(|(layer, layer_bytes)| {
+            // Generate the hash
+            // TODO: Once hashing is actually available from the registry, we should double check
+            // that the hashes match
+            let layer_hash = hasher::sha256_hash(&layer_bytes);
+
+            (layer, layer_hash, layer_bytes)
+        })
+        .for_each(|(layer, layer_hash, layer_bytes)| {
             // Decide where to store the this layer by its hash
             // TODO: Handle this failure case ahead of time somehow
-            let layer_hash = layers_to_hashes_map.get(&layer.name).unwrap();
             let mut hashed_layer_path = PathBuf::new();
             hashed_layer_path.push(download_dir);
             hashed_layer_path.push(layer_hash);
