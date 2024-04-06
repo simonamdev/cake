@@ -78,6 +78,8 @@ pub fn get_model_files(model_id: &str) -> Result<Vec<FileInfo>, Error> {
         "https://huggingface.co/api/models/{}/paths-info/main",
         model_id
     );
+    // TOOD: pass in the paths required here: seems we need to get that from the tree url
+    // See: https://github.com/huggingface/huggingface_hub/blob/main/src/huggingface_hub/hf_api.py#L2793C10-L2794C103
 
     let response = client.post(url).send()?;
 
@@ -86,6 +88,8 @@ pub fn get_model_files(model_id: &str) -> Result<Vec<FileInfo>, Error> {
     // TODO: Handle malformed JSON better
     // TODO: Handle multiple files, this isn't correct with the actual payload
     // See: https://github.com/huggingface/huggingface_hub/blob/main/src/huggingface_hub/hf_api.py#L3017
+    println!("{:?}", body);
+
     let result = fill_file_info_from_json(&body).unwrap();
 
     Ok(result)
