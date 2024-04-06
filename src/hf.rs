@@ -1,6 +1,6 @@
 use anyhow::{Error, Ok};
 use reqwest::blocking::Client;
-use serde_json;
+use serde_json::{self, json};
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
@@ -79,9 +79,15 @@ pub fn get_model_files(model_id: &str) -> Result<Vec<FileInfo>, Error> {
         model_id
     );
     // TOOD: pass in the paths required here: seems we need to get that from the tree url
+    // Looks like passing a glob of *.safetensors does not work. We can look at how huggingface-cli doe sit
     // See: https://github.com/huggingface/huggingface_hub/blob/main/src/huggingface_hub/hf_api.py#L2793C10-L2794C103
 
-    let response = client.post(url).send()?;
+    // Test URL: https://huggingface.co/KoboldAI/fairseq-dense-1.3B
+    let payload = serde_json::json!({
+        "paths": ["*.safetensors"]
+    });
+
+    let response = client.post(url).json(&payload).send()?;
 
     let body = response.text().unwrap();
 
