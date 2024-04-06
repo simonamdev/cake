@@ -77,6 +77,8 @@ pub fn get_model_files(model_id: &str) -> Result<FileInfo, Error> {
     let body = response.text().unwrap();
 
     // TODO: Handle malformed JSON better
+    // TODO: Handle multiple files, this isn't correct with the actual payload
+    // See: https://github.com/huggingface/huggingface_hub/blob/main/src/huggingface_hub/hf_api.py#L3017
     let result = fill_file_info_from_json(&body).unwrap();
 
     Ok(result)
