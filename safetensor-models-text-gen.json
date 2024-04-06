@@ -72309,9 +72309,6 @@
   "gizmo-ai/split-up-llama-7b-GPTQ-4bit": [
     "model.safetensors"
   ],
-  "gizmo-ai/split-up-llama-7b-awq-with-config": [
-    "model.safetensors"
-  ],
   "gizmo-ai/stablelm-2-1_6b": [
     "model.safetensors"
   ],

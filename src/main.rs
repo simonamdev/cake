@@ -14,7 +14,7 @@ use lz4::block::compress;
 mod compare;
 mod download;
 mod export;
-mod hash;
+mod hasher;
 mod hf;
 
 #[derive(Parser)]
@@ -230,7 +230,7 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
         .map(|(layer, tensor)| {
             // Perform the hashing part for uncompressed version
             main_bar_clone.set_message(format!("Hashing: {}", layer.name));
-            let hash = hash::sha256_hash(&tensor);
+            let hash = hasher::sha256_hash(&tensor);
             // Perform the hashing part for compressed version
             // Compress the tensor
             main_bar_clone.set_message(format!("Compressing: {}", layer.name));
@@ -240,7 +240,7 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
             let mut compressed_size: i64 = -1;
             match compressed_tensor {
                 Ok(ct) => {
-                    compressed_hash = hash::sha256_hash(&ct);
+                    compressed_hash = hasher::sha256_hash(&ct);
                     compressed_size = ct.len() as i64;
                 }
                 Err(_e) => {}

@@ -54,7 +54,7 @@ pub fn get_model_info(model_id: &str) -> Result<ModelInfo, Error> {
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct FileInfo {
-    path: String,
+    pub path: String,
     size: i64,
     blob_id: String,
     // TODO: Add all fields if necessary
