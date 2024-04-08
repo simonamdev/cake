@@ -1,7 +1,8 @@
 use anyhow::{Error, Ok};
 use reqwest::blocking::Client;
-use serde_json::{self, json};
+use serde_json::{self, json, Value};
 use std::collections::HashMap;
+use std::result::Result::Ok as stdOk;
 
 use serde::{Deserialize, Serialize};
 
@@ -25,11 +26,31 @@ pub struct ModelInfo {
     model_index: Option<HashMap<String, String>>, // Change this to appropriate type
     config: Option<HashMap<String, String>>, // Change this to appropriate type
                                  // Add more fields as needed
+    pub siblings: Vec<Sibling>,
 }
 
-fn fill_model_info_from_json(json_string: &str) -> Result<ModelInfo, Error> {
-    let model_info: ModelInfo = serde_json::from_str(json_string)?;
-    Ok(model_info)
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub struct Sibling {
+    pub rfilename: String,
+}
+
+fn fill_model_info_from_json(json_string: &str) -> Result<ModelInfo, serde_json::Error> {
+    let mut model_info: ModelInfo = serde_json::from_str(json_string)?;
+    
+    // Ensure the siblings field exists in the JSON
+    if let stdOk(value) = serde_json::from_str::<serde_json::Value>(json_string) {
+        if let Some(siblings) = value.get("siblings") {
+            if let Some(siblings) = siblings.as_array() {
+                model_info.siblings = siblings
+                    .iter()
+                    .filter_map(|sibling| serde_json::from_value::<Sibling>(sibling.clone()).ok())
+                    .collect();
+            }
+        }
+    }
+
+    stdOk(model_info)
 }
 
 pub fn get_model_info(model_id: &str) -> Result<ModelInfo, Error> {
@@ -45,6 +66,7 @@ pub fn get_model_info(model_id: &str) -> Result<ModelInfo, Error> {
     let response = client.get(url).send()?;
 
     let body = response.text().unwrap();
+    println!("{}", body);
 
     // TODO: Handle malformed JSON better
     let result = fill_model_info_from_json(&body).unwrap();
@@ -124,7 +146,8 @@ mod tests {
             "mask_token": "mask_token",
             "widget_data": "widget_data",
             "model_index": {"key": "value"},
-            "config": {"key": "value"}
+            "config": {"key": "value"},
+            "siblings": [{"rfilename": "foo.safetensors"}]
         }"#;
 
         // Expected ModelInfo struct
@@ -154,6 +177,242 @@ mod tests {
                     .into_iter()
                     .collect(),
             ),
+            siblings: vec![
+                Sibling{
+                    rfilename: "foo.safetensors".to_string(),
+                }
+            ]
+        };
+
+        // Parse JSON and fill the struct
+        let actual_model_info = fill_model_info_from_json(json_string).unwrap();
+
+        // Compare expected with actual
+        assert_eq!(expected_model_info, actual_model_info);
+    }
+
+    #[test]
+    fn test_fill_model_info_with_real_example_from_json() {
+        // Mock JSON string for testing
+        let json_string = r#"{
+            "_id": "656b7fec4ab7bc884d6c9143",
+            "id": "TheBloke/DiscoLM-120b-GPTQ",
+            "modelId": "TheBloke/DiscoLM-120b-GPTQ",
+            "author": "TheBloke",
+            "sha": "d7a8e6b389680aab92fa9ec3d33067a7d7a35cd0",
+            "lastModified": "2023-12-03T10:31:01.000Z",
+            "private": false,
+            "disabled": false,
+            "gated": false,
+            "pipeline_tag": "text-generation",
+            "tags": [
+                "transformers",
+                "safetensors",
+                "llama",
+                "text-generation",
+                "goliath",
+                "deutsch",
+                "llama2",
+                "discoresearch",
+                "en",
+                "dataset:Open-Orca/SlimOrca-Dedup",
+                "dataset:teknium/openhermes",
+                "dataset:meta-math/MetaMathQA",
+                "dataset:migtissera/Synthia-v1.3",
+                "dataset:THUDM/AgentInstruct",
+                "dataset:LeoLM/German_Songs",
+                "dataset:LeoLM/German_Poems",
+                "dataset:LeoLM/OpenSchnabeltier",
+                "dataset:bjoernp/ultrachat_de",
+                "base_model:DiscoResearch/DiscoLM-120b",
+                "license:llama2",
+                "autotrain_compatible",
+                "text-generation-inference",
+                "4-bit",
+                "region:us"
+            ],
+            "downloads": 5,
+            "library_name": "transformers",
+            "widgetData": [
+                {
+                    "text": "My name is Julien and I like to"
+                },
+                {
+                    "text": "My name is Thomas and my main"
+                },
+                {
+                    "text": "My name is Mariama, my favorite"
+                },
+                {
+                    "text": "My name is Clara and I am"
+                },
+                {
+                    "text": "My name is Lewis and I like to"
+                },
+                {
+                    "text": "My name is Merve and my favorite"
+                },
+                {
+                    "text": "My name is Teven and I am"
+                },
+                {
+                    "text": "Once upon a time,"
+                }
+            ],
+            "likes": 3,
+            "model-index": null,
+            "config": {
+                "architectures": [
+                    "LlamaForCausalLM"
+                ],
+                "model_type": "llama",
+                "quantization_config": {
+                    "bits": 4
+                },
+                "tokenizer_config": {
+                    "bos_token": "<s>",
+                    "eos_token": "<|im_end|>",
+                    "pad_token": "</s>",
+                    "unk_token": "<unk>",
+                    "use_default_system_prompt": true
+                }
+            },
+            "cardData": {
+                "base_model": "DiscoResearch/DiscoLM-120b",
+                "datasets": [
+                    "Open-Orca/SlimOrca-Dedup",
+                    "teknium/openhermes",
+                    "meta-math/MetaMathQA",
+                    "migtissera/Synthia-v1.3",
+                    "THUDM/AgentInstruct",
+                    "LeoLM/German_Songs",
+                    "LeoLM/German_Poems",
+                    "LeoLM/OpenSchnabeltier",
+                    "bjoernp/ultrachat_de"
+                ],
+                "inference": false,
+                "language": [
+                    "en"
+                ],
+                "library_name": "transformers",
+                "license": "llama2",
+                "model_creator": "Disco Research",
+                "model_name": "DiscoLM 120B",
+                "model_type": "llama",
+                "pipeline_tag": "text-generation",
+                "prompt_template": "<|im_start|>system\n{system_message}<|im_end|>\n<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n",
+                "quantized_by": "TheBloke",
+                "tags": [
+                    "goliath",
+                    "deutsch",
+                    "llama2",
+                    "discoresearch"
+                ]
+            },
+            "transformersInfo": {
+                "auto_model": "AutoModelForCausalLM",
+                "pipeline_tag": "text-generation",
+                "processor": "AutoTokenizer"
+            },
+            "spaces": [],
+            "siblings": [
+                {
+                    "rfilename": ".gitattributes"
+                },
+                {
+                    "rfilename": "LICENSE"
+                },
+                {
+                    "rfilename": "Notice"
+                },
+                {
+                    "rfilename": "README.md"
+                },
+                {
+                    "rfilename": "added_tokens.json"
+                },
+                {
+                    "rfilename": "config.json"
+                },
+                {
+                    "rfilename": "generation_config.json"
+                },
+                {
+                    "rfilename": "model-00001-of-00006.safetensors"
+                },
+                {
+                    "rfilename": "model-00002-of-00006.safetensors"
+                },
+                {
+                    "rfilename": "model-00003-of-00006.safetensors"
+                },
+                {
+                    "rfilename": "model-00004-of-00006.safetensors"
+                },
+                {
+                    "rfilename": "model-00005-of-00006.safetensors"
+                },
+                {
+                    "rfilename": "model-00006-of-00006.safetensors"
+                },
+                {
+                    "rfilename": "model.safetensors.index.json"
+                },
+                {
+                    "rfilename": "quantize_config.json"
+                },
+                {
+                    "rfilename": "special_tokens_map.json"
+                },
+                {
+                    "rfilename": "tokenizer.model"
+                },
+                {
+                    "rfilename": "tokenizer_config.json"
+                }
+            ],
+            "createdAt": "2023-12-02T19:05:16.000Z",
+            "safetensors": {
+                "parameters": {
+                    "I32": 14664900864,
+                    "F16": 550072320
+                },
+                "total": 15214973184
+            }
+        }"#;
+
+        // Expected ModelInfo struct
+        let expected_model_info = ModelInfo {
+            id: "model_id".to_string(),
+            author: Some("author_name".to_string()),
+            sha: Some("sha_value".to_string()),
+            created_at: Some("2022-03-02T23:29:04.000Z".to_string()),
+            last_modified: Some("2022-03-02T23:29:04.000Z".to_string()),
+            private: false,
+            disabled: Some(false),
+            gated: Some("auto".to_string()),
+            downloads: 100,
+            likes: 50,
+            library_name: Some("library_name".to_string()),
+            tags: vec!["tag1".to_string(), "tag2".to_string()],
+            pipeline_tag: Some("pipeline_tag".to_string()),
+            mask_token: Some("mask_token".to_string()),
+            widget_data: Some("widget_data".to_string()),
+            model_index: Some(
+                vec![("key".to_string(), "value".to_string())]
+                    .into_iter()
+                    .collect(),
+            ),
+            config: Some(
+                vec![("key".to_string(), "value".to_string())]
+                    .into_iter()
+                    .collect(),
+            ),
+            siblings: vec![
+                Sibling{
+                    rfilename: "foo.safetensors".to_string(),
+                }
+            ]
         };
 
         // Parse JSON and fill the struct

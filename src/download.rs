@@ -23,18 +23,24 @@ pub fn get_download_url_from_model_id(model_id: &str, file_name: &str) -> String
 
 pub fn download_safetensors_file_by_model_id(model_id: &str) {
     // Query the HF API to see the file names
-    // TODO: Filter specifically for *.safetensors files
-    let model_files_result = hf::get_model_files(model_id);
-    if model_files_result.is_err() {
+
+    let model_info_result = hf::get_model_info(model_id);
+    if model_info_result.is_err() {
         // TODO: Handle better, print the error message too
-        panic!("Unable to retrieve model files when attempting download!")
+        panic!("Unable to retrieve model info when attempting download!")
     }
 
-    let model_files = model_files_result.unwrap();
+    let model_info = model_info_result.unwrap();
 
-    let safetensor_model_file_count = model_files
+    let model_filenames: Vec<&String> = model_info.siblings
+        .as_slice()
         .iter()
-        .filter(|a| a.path.ends_with(".safetensors"))
+        .map(|s| &s.rfilename)
+        .collect();
+
+    let safetensor_model_file_count = model_filenames
+        .iter()
+        .filter(|a| a.ends_with(".safetensors"))
         .count();
 
     // TODO: Support gguf files?
@@ -51,15 +57,15 @@ pub fn download_safetensors_file_by_model_id(model_id: &str) {
     // TODO: Configurable download folder, or pick a better sensible default
     let download_dir: &str = "./download";
     let mut file_index = 0;
-    for file_info in model_files {
+    for file_name in model_filenames {
         println!(
             "File {} of {}: {}",
             file_index + 1,
             safetensor_model_file_count,
-            file_info.path
+            file_name
         );
 
-        let file_url = &get_download_url_from_model_id(model_id, &file_info.path);
+        let file_url = &get_download_url_from_model_id(model_id, &file_name);
         // TODO: Add the check here that will somehow find out if we already have some hashes on our filesystem
         // That depends on having a source of truth for the hashes
         // For now, a "hash registry" can be implemented
@@ -67,7 +73,7 @@ pub fn download_safetensors_file_by_model_id(model_id: &str) {
 
         // (NOT IMPLEMENTED YET) Retrieve the hashes for this model
         let (model_header, layers_to_hashes_map) =
-            hasher::get_model_file_hashes(model_id, &file_info.path);
+            hasher::get_model_file_hashes(model_id, &file_name);
 
         // (NOT IMPLEMENTED YET) This check here is a placeholder for the future where we actually have the hashes available
         let locally_available_hashes =
@@ -125,7 +131,7 @@ pub fn download_safetensors_file_by_model_id(model_id: &str) {
 
         main_bar_clone.finish_with_message(format!(
             "{} All done! {} layers already present, {} layers downloaded",
-            file_info.path,
+            file_name,
             layers_to_hashes_map.len() - layers_downloaded_count,
             layers_downloaded_count
         ));
