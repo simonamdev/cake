@@ -16,6 +16,7 @@ mod download;
 mod export;
 mod hasher;
 mod hf;
+mod registry;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
