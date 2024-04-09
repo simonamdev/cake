@@ -1,10 +1,10 @@
 use axum::{
-    routing::{get, post},
-    http::StatusCode,
-    Json, Router,
+    routing::get,
+    Router,
 };
-use serde::{Deserialize, Serialize};
-
+use tower_http::
+    services::ServeDir
+;
 #[tokio::main]
 pub async fn run_registry() {
     // initialize tracing
@@ -13,7 +13,8 @@ pub async fn run_registry() {
     // build our application with a route
     let app = Router::new()
         // `GET /` goes to `root`
-        .route("/", get(root));
+        .route("/", get(root))
+        .nest_service("/results", ServeDir::new("./results"));
 
     // run our app with hyper, listening globally on port 3000
     println!("Starting Cake registry...");
@@ -23,6 +24,5 @@ pub async fn run_registry() {
 
 // basic handler that responds with a static string
 async fn root() -> &'static str {
-    "Hello, World!"
+    "Hello, World! This is the Cake registry speaking."
 }
-
