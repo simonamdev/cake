@@ -38,10 +38,13 @@ pub fn download_safetensors_file_by_model_id(model_id: &str) {
         .map(|s| &s.rfilename)
         .collect();
 
-    let safetensor_model_file_count = model_filenames
+    let safetensors_filenames: Vec<&String> = model_filenames
         .iter()
-        .filter(|a| a.ends_with(".safetensors"))
-        .count();
+        .filter(|mf| mf.ends_with(".safetensors"))
+        .map(|mf| mf.clone())
+        .collect();
+
+    let safetensor_model_file_count = safetensors_filenames.len();
 
     // TODO: Support gguf files?
     if safetensor_model_file_count == 0 {
@@ -50,14 +53,18 @@ pub fn download_safetensors_file_by_model_id(model_id: &str) {
     }
 
     println!(
-        "{} safetensors files to be downloaded",
+        "{} safetensors files to be downloaded:",
         safetensor_model_file_count
     );
+
+    safetensors_filenames.iter().for_each(|f| {
+        println!("> {}", f)
+    });
 
     // TODO: Configurable download folder, or pick a better sensible default
     let download_dir: &str = "./download";
     let mut file_index = 0;
-    for file_name in model_filenames {
+    for file_name in safetensors_filenames {
         println!(
             "File {} of {}: {}",
             file_index + 1,
@@ -84,6 +91,8 @@ pub fn download_safetensors_file_by_model_id(model_id: &str) {
             .filter(|&(_, v)| !locally_available_hashes.contains(v))
             .map(|(k, _)| k.to_string())
             .collect();
+
+        println!("Downloading {} layers", model_layers_to_download.len());
 
         // Setup the progress bars
         let main_bar = ProgressBar::new(model_layers_to_download.len() as u64).with_style(

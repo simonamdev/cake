@@ -11,21 +11,14 @@ pub struct ModelInfo {
     id: String,
     author: Option<String>,
     sha: Option<String>,
-    created_at: Option<String>, // Change this to appropriate date/time type if needed
-    last_modified: Option<String>, // Change this to appropriate date/time type if needed
     private: bool,
     disabled: Option<bool>,
-    gated: Option<String>, // Change this to appropriate type
+    gated: bool,
     downloads: i32,
     likes: i32,
     library_name: Option<String>,
     tags: Vec<String>,
     pipeline_tag: Option<String>,
-    mask_token: Option<String>,
-    widget_data: Option<String>, // Change this to appropriate type
-    model_index: Option<HashMap<String, String>>, // Change this to appropriate type
-    config: Option<HashMap<String, String>>, // Change this to appropriate type
-                                 // Add more fields as needed
     pub siblings: Vec<Sibling>,
 }
 
@@ -133,20 +126,14 @@ mod tests {
             "id": "model_id",
             "author": "author_name",
             "sha": "sha_value",
-            "created_at": "2022-03-02T23:29:04.000Z",
-            "last_modified": "2022-03-02T23:29:04.000Z",
             "private": false,
             "disabled": false,
-            "gated": "auto",
+            "gated": false,
             "downloads": 100,
             "likes": 50,
             "library_name": "library_name",
             "tags": ["tag1", "tag2"],
             "pipeline_tag": "pipeline_tag",
-            "mask_token": "mask_token",
-            "widget_data": "widget_data",
-            "model_index": {"key": "value"},
-            "config": {"key": "value"},
             "siblings": [{"rfilename": "foo.safetensors"}]
         }"#;
 
@@ -155,28 +142,14 @@ mod tests {
             id: "model_id".to_string(),
             author: Some("author_name".to_string()),
             sha: Some("sha_value".to_string()),
-            created_at: Some("2022-03-02T23:29:04.000Z".to_string()),
-            last_modified: Some("2022-03-02T23:29:04.000Z".to_string()),
             private: false,
             disabled: Some(false),
-            gated: Some("auto".to_string()),
+            gated: false,
             downloads: 100,
             likes: 50,
             library_name: Some("library_name".to_string()),
             tags: vec!["tag1".to_string(), "tag2".to_string()],
             pipeline_tag: Some("pipeline_tag".to_string()),
-            mask_token: Some("mask_token".to_string()),
-            widget_data: Some("widget_data".to_string()),
-            model_index: Some(
-                vec![("key".to_string(), "value".to_string())]
-                    .into_iter()
-                    .collect(),
-            ),
-            config: Some(
-                vec![("key".to_string(), "value".to_string())]
-                    .into_iter()
-                    .collect(),
-            ),
             siblings: vec![
                 Sibling{
                     rfilename: "foo.safetensors".to_string(),
@@ -207,58 +180,10 @@ mod tests {
             "pipeline_tag": "text-generation",
             "tags": [
                 "transformers",
-                "safetensors",
-                "llama",
-                "text-generation",
-                "goliath",
-                "deutsch",
-                "llama2",
-                "discoresearch",
-                "en",
-                "dataset:Open-Orca/SlimOrca-Dedup",
-                "dataset:teknium/openhermes",
-                "dataset:meta-math/MetaMathQA",
-                "dataset:migtissera/Synthia-v1.3",
-                "dataset:THUDM/AgentInstruct",
-                "dataset:LeoLM/German_Songs",
-                "dataset:LeoLM/German_Poems",
-                "dataset:LeoLM/OpenSchnabeltier",
-                "dataset:bjoernp/ultrachat_de",
-                "base_model:DiscoResearch/DiscoLM-120b",
-                "license:llama2",
-                "autotrain_compatible",
-                "text-generation-inference",
-                "4-bit",
-                "region:us"
+                "safetensors"
             ],
             "downloads": 5,
             "library_name": "transformers",
-            "widgetData": [
-                {
-                    "text": "My name is Julien and I like to"
-                },
-                {
-                    "text": "My name is Thomas and my main"
-                },
-                {
-                    "text": "My name is Mariama, my favorite"
-                },
-                {
-                    "text": "My name is Clara and I am"
-                },
-                {
-                    "text": "My name is Lewis and I like to"
-                },
-                {
-                    "text": "My name is Merve and my favorite"
-                },
-                {
-                    "text": "My name is Teven and I am"
-                },
-                {
-                    "text": "Once upon a time,"
-                }
-            ],
             "likes": 3,
             "model-index": null,
             "config": {
@@ -371,7 +296,6 @@ mod tests {
                     "rfilename": "tokenizer_config.json"
                 }
             ],
-            "createdAt": "2023-12-02T19:05:16.000Z",
             "safetensors": {
                 "parameters": {
                     "I32": 14664900864,
@@ -383,35 +307,76 @@ mod tests {
 
         // Expected ModelInfo struct
         let expected_model_info = ModelInfo {
-            id: "model_id".to_string(),
-            author: Some("author_name".to_string()),
-            sha: Some("sha_value".to_string()),
-            created_at: Some("2022-03-02T23:29:04.000Z".to_string()),
-            last_modified: Some("2022-03-02T23:29:04.000Z".to_string()),
+            id: "TheBloke/DiscoLM-120b-GPTQ".to_string(),
+            author: Some("TheBloke".to_string()),
+            sha: Some("d7a8e6b389680aab92fa9ec3d33067a7d7a35cd0".to_string()),
             private: false,
             disabled: Some(false),
-            gated: Some("auto".to_string()),
-            downloads: 100,
-            likes: 50,
-            library_name: Some("library_name".to_string()),
-            tags: vec!["tag1".to_string(), "tag2".to_string()],
-            pipeline_tag: Some("pipeline_tag".to_string()),
-            mask_token: Some("mask_token".to_string()),
-            widget_data: Some("widget_data".to_string()),
-            model_index: Some(
-                vec![("key".to_string(), "value".to_string())]
-                    .into_iter()
-                    .collect(),
-            ),
-            config: Some(
-                vec![("key".to_string(), "value".to_string())]
-                    .into_iter()
-                    .collect(),
-            ),
+            gated: false,
+            downloads: 5,
+            likes: 3,
+            library_name: Some("transformers".to_string()),
+            tags: vec![
+                "transformers".to_string(),
+                "safetensors".to_string()
+            ],
+            pipeline_tag: Some("text-generation".to_string()),
             siblings: vec![
                 Sibling{
-                    rfilename: "foo.safetensors".to_string(),
-                }
+                    rfilename: ".gitattributes".to_string(),
+                },
+                Sibling{
+                    rfilename: "LICENSE".to_string(),
+                },
+                Sibling{
+                    rfilename: "Notice".to_string(),
+                },
+                Sibling{
+                    rfilename: "README.md".to_string(),
+                },
+                Sibling{
+                    rfilename: "added_tokens.json".to_string(),
+                },
+                Sibling{
+                    rfilename: "config.json".to_string(),
+                },
+                Sibling{
+                    rfilename: "generation_config.json".to_string(),
+                },
+                Sibling{
+                    rfilename: "model-00001-of-00006.safetensors".to_string(),
+                },
+                Sibling{
+                    rfilename: "model-00002-of-00006.safetensors".to_string(),
+                },
+                Sibling{
+                    rfilename: "model-00003-of-00006.safetensors".to_string(),
+                },
+                Sibling{
+                    rfilename: "model-00004-of-00006.safetensors".to_string(),
+                },
+                Sibling{
+                    rfilename: "model-00005-of-00006.safetensors".to_string(),
+                },
+                Sibling{
+                    rfilename: "model-00006-of-00006.safetensors".to_string(),
+                },
+                Sibling{
+                    rfilename: "model.safetensors.index.json".to_string(),
+                },
+                Sibling{
+                    rfilename: "quantize_config.json".to_string(),
+                },
+                Sibling{
+                    rfilename: "special_tokens_map.json".to_string(),
+                },
+                Sibling{
+                    rfilename: "tokenizer.model".to_string(),
+                },
+                Sibling{
+                    rfilename: "tokenizer_config.json".to_string(),
+                },
+                
             ]
         };
 
