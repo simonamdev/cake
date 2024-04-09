@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fs};
 
 use sha2::{Digest, Sha256};
 
@@ -19,15 +19,17 @@ pub struct ModelHeader {
     header_length_bytes: u64,
 }
 
-pub fn get_locally_available_hashes(required_hashes: Vec<String>) -> Vec<String> {
-    // TODO: Implement this check locally
-    let mut locally_available_hashes: Vec<String> = vec![];
+pub fn get_locally_available_hashes(storage_dir: &str) -> Vec<String> {
+    let locally_available_hashes: Vec<String> = fs::read_dir(storage_dir)
+        .unwrap()
+        .filter_map(|entry| {
+            entry.ok().and_then(|dir_entry| {
+                dir_entry.file_name().into_string().ok()
+            })
+        })
+        .collect();
 
-    // THIS IS JUST FOR TESTING
-    // KoboldAI/fairseq-dense-1.3B: lm_head.weight
-    locally_available_hashes.push(
-        "699a0dd9f0ce1218da2b7fbc61d73dfd922595f4cbf573e5bc222a0991d08c18".to_string()
-    );
+    println!("{} layers already available locally", locally_available_hashes.len());
 
     locally_available_hashes
 }

@@ -32,7 +32,8 @@ pub fn download_safetensors_file_by_model_id(model_id: &str) {
 
     let model_info = model_info_result.unwrap();
 
-    let model_filenames: Vec<&String> = model_info.siblings
+    let model_filenames: Vec<&String> = model_info
+        .siblings
         .as_slice()
         .iter()
         .map(|s| &s.rfilename)
@@ -57,9 +58,9 @@ pub fn download_safetensors_file_by_model_id(model_id: &str) {
         safetensor_model_file_count
     );
 
-    safetensors_filenames.iter().for_each(|f| {
-        println!("> {}", f)
-    });
+    safetensors_filenames
+        .iter()
+        .for_each(|f| println!("> {}", f));
 
     // TODO: Configurable download folder, or pick a better sensible default
     let download_dir: &str = "./download";
@@ -83,8 +84,7 @@ pub fn download_safetensors_file_by_model_id(model_id: &str) {
             hasher::get_model_file_hashes(model_id, &file_name);
 
         // (NOT IMPLEMENTED YET) This check here is a placeholder for the future where we actually have the hashes available
-        let locally_available_hashes =
-            hasher::get_locally_available_hashes(layers_to_hashes_map.values().cloned().collect());
+        let locally_available_hashes = hasher::get_locally_available_hashes(download_dir);
 
         let mut model_layers_to_download: Vec<_> = layers_to_hashes_map
             .iter()
@@ -98,11 +98,12 @@ pub fn download_safetensors_file_by_model_id(model_id: &str) {
 
         if layers_to_hashes_map.len() == 0 {
             println!("Layer to Hashes Map is missing, downloading all layers instead...");
-            let mut all_layer_names: Vec<_> = model_header.raw_header
+            let mut all_layer_names: Vec<_> = model_header
+                .raw_header
                 .as_object()
                 .unwrap()
                 .keys()
-                .filter(|k| k.to_string() !="__metadata__")
+                .filter(|k| k.to_string() != "__metadata__")
                 .map(|n| n.to_string())
                 .collect();
             model_layers_to_download.clear();
@@ -110,7 +111,10 @@ pub fn download_safetensors_file_by_model_id(model_id: &str) {
         }
 
         if model_layers_to_download.len() == 0 {
-            println!("All layers already downloaded");
+            println!(
+                "All layers already downloaded for {} of {}",
+                file_name, model_id
+            );
             continue;
         }
 
@@ -141,6 +145,8 @@ pub fn download_safetensors_file_by_model_id(model_id: &str) {
             // that the hashes match
             let layer_hash = hasher::sha256_hash(&layer_bytes);
 
+            main_bar_clone.set_message(format!("Hashing: {}", layer.name));
+
             (layer, layer_hash, layer_bytes)
         })
         .for_each(|(layer, layer_hash, layer_bytes)| {
@@ -154,18 +160,24 @@ pub fn download_safetensors_file_by_model_id(model_id: &str) {
             fs::create_dir_all(hashed_layer_path.parent().unwrap()).unwrap();
             // Write the file
             let mut file = File::create(hashed_layer_path).unwrap();
+
+            main_bar_clone.set_message(format!("Writing: {}", layer.name));
+
             file.write_all(&layer_bytes).unwrap();
             file.flush().unwrap();
             // Increment the progress bar
             main_bar_clone.inc(1);
+
+            main_bar_clone.set_message(format!("Last complete: {}", layer.name));
         });
 
-        main_bar_clone.finish_with_message(format!(
-            "{} All done! {} layers already present, {} layers downloaded",
-            file_name,
+        main_bar_clone.finish_with_message(format!("{} All done!", file_name));
+
+        println!(
+            "{} layers already present, {} layers downloaded",
             layers_to_hashes_map.len() - layers_downloaded_count,
             layers_downloaded_count
-        ));
+        );
 
         file_index += 1;
     }
