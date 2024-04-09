@@ -10,7 +10,6 @@ use serde_json::{json, Map, Value};
 
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use lz4::block::compress;
-use tracing_subscriber::Registry;
 
 mod compare;
 mod download;
@@ -106,7 +105,7 @@ fn main() {
         }
         Some(Commands::Registry {}) => {
             registry::run_registry();
-        } 
+        }
         None => {}
     }
 }

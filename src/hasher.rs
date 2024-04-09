@@ -16,20 +16,23 @@ pub fn sha256_hash(bytes: &[u8]) -> String {
 
 pub struct ModelHeader {
     pub raw_header: serde_json::Value,
-    header_length_bytes: u64,
+    pub header_length_bytes: u64,
 }
 
 pub fn get_locally_available_hashes(storage_dir: &str) -> Vec<String> {
     let locally_available_hashes: Vec<String> = fs::read_dir(storage_dir)
         .unwrap()
         .filter_map(|entry| {
-            entry.ok().and_then(|dir_entry| {
-                dir_entry.file_name().into_string().ok()
-            })
+            entry
+                .ok()
+                .and_then(|dir_entry| dir_entry.file_name().into_string().ok())
         })
         .collect();
 
-    println!("{} layers already available locally", locally_available_hashes.len());
+    println!(
+        "{} layers already available locally",
+        locally_available_hashes.len()
+    );
 
     locally_available_hashes
 }

@@ -1,10 +1,6 @@
-use axum::{
-    routing::get,
-    Router,
-};
-use tower_http::
-    services::ServeDir
-;
+use axum::{routing::get, Router};
+use tower_http::services::ServeDir;
+
 #[tokio::main]
 pub async fn run_registry() {
     // initialize tracing

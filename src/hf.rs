@@ -1,7 +1,6 @@
 use anyhow::{Error, Ok};
 use reqwest::blocking::Client;
-use serde_json::{self, json, Value};
-use std::collections::HashMap;
+use serde_json::{self};
 use std::result::Result::Ok as stdOk;
 
 use serde::{Deserialize, Serialize};
@@ -22,7 +21,6 @@ pub struct ModelInfo {
     pub siblings: Vec<Sibling>,
 }
 
-
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Sibling {
     pub rfilename: String,
@@ -30,7 +28,7 @@ pub struct Sibling {
 
 fn fill_model_info_from_json(json_string: &str) -> Result<ModelInfo, serde_json::Error> {
     let mut model_info: ModelInfo = serde_json::from_str(json_string)?;
-    
+
     // Ensure the siblings field exists in the JSON
     if let stdOk(value) = serde_json::from_str::<serde_json::Value>(json_string) {
         if let Some(siblings) = value.get("siblings") {
@@ -79,12 +77,12 @@ pub struct FileInfo {
 }
 
 // TODO: Support FolderInfo
-fn fill_file_info_from_json(json_string: &str) -> Result<Vec<FileInfo>, Error> {
+fn _fill_file_info_from_json(json_string: &str) -> Result<Vec<FileInfo>, Error> {
     let file_infos: Vec<FileInfo> = serde_json::from_str(json_string)?;
     Ok(file_infos)
 }
 
-pub fn get_model_files(model_id: &str) -> Result<Vec<FileInfo>, Error> {
+pub fn _get_model_files(model_id: &str) -> Result<Vec<FileInfo>, Error> {
     // TODO: setup headers?
     let client = Client::new();
 
@@ -111,12 +109,13 @@ pub fn get_model_files(model_id: &str) -> Result<Vec<FileInfo>, Error> {
     // See: https://github.com/huggingface/huggingface_hub/blob/main/src/huggingface_hub/hf_api.py#L3017
     println!("{:?}", body);
 
-    let result = fill_file_info_from_json(&body).unwrap();
+    let result = _fill_file_info_from_json(&body).unwrap();
 
     Ok(result)
 }
 
 mod tests {
+    #[allow(unused_imports)]
     use super::*;
 
     #[test]
@@ -150,11 +149,9 @@ mod tests {
             library_name: Some("library_name".to_string()),
             tags: vec!["tag1".to_string(), "tag2".to_string()],
             pipeline_tag: Some("pipeline_tag".to_string()),
-            siblings: vec![
-                Sibling{
-                    rfilename: "foo.safetensors".to_string(),
-                }
-            ]
+            siblings: vec![Sibling {
+                rfilename: "foo.safetensors".to_string(),
+            }],
         };
 
         // Parse JSON and fill the struct
@@ -316,68 +313,64 @@ mod tests {
             downloads: 5,
             likes: 3,
             library_name: Some("transformers".to_string()),
-            tags: vec![
-                "transformers".to_string(),
-                "safetensors".to_string()
-            ],
+            tags: vec!["transformers".to_string(), "safetensors".to_string()],
             pipeline_tag: Some("text-generation".to_string()),
             siblings: vec![
-                Sibling{
+                Sibling {
                     rfilename: ".gitattributes".to_string(),
                 },
-                Sibling{
+                Sibling {
                     rfilename: "LICENSE".to_string(),
                 },
-                Sibling{
+                Sibling {
                     rfilename: "Notice".to_string(),
                 },
-                Sibling{
+                Sibling {
                     rfilename: "README.md".to_string(),
                 },
-                Sibling{
+                Sibling {
                     rfilename: "added_tokens.json".to_string(),
                 },
-                Sibling{
+                Sibling {
                     rfilename: "config.json".to_string(),
                 },
-                Sibling{
+                Sibling {
                     rfilename: "generation_config.json".to_string(),
                 },
-                Sibling{
+                Sibling {
                     rfilename: "model-00001-of-00006.safetensors".to_string(),
                 },
-                Sibling{
+                Sibling {
                     rfilename: "model-00002-of-00006.safetensors".to_string(),
                 },
-                Sibling{
+                Sibling {
                     rfilename: "model-00003-of-00006.safetensors".to_string(),
                 },
-                Sibling{
+                Sibling {
                     rfilename: "model-00004-of-00006.safetensors".to_string(),
                 },
-                Sibling{
+                Sibling {
                     rfilename: "model-00005-of-00006.safetensors".to_string(),
                 },
-                Sibling{
+                Sibling {
                     rfilename: "model-00006-of-00006.safetensors".to_string(),
                 },
-                Sibling{
+                Sibling {
                     rfilename: "model.safetensors.index.json".to_string(),
                 },
-                Sibling{
+                Sibling {
                     rfilename: "quantize_config.json".to_string(),
                 },
-                Sibling{
+                Sibling {
                     rfilename: "special_tokens_map.json".to_string(),
                 },
-                Sibling{
+                Sibling {
                     rfilename: "tokenizer.model".to_string(),
                 },
-                Sibling{
+                Sibling {
                     rfilename: "tokenizer_config.json".to_string(),
                 },
-                
-            ]
+            ],
         };
 
         // Parse JSON and fill the struct
@@ -388,7 +381,7 @@ mod tests {
     }
 
     #[test]
-    fn test_fill_file_info_from_json() {
+    fn test__fill_file_info_from_json() {
         // Mock JSON string for testing
         let json_string = r#"[
             {

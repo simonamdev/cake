@@ -4,7 +4,7 @@ use std::fs::{self};
 use std::io::prelude::*;
 use std::path::PathBuf;
 
-pub fn combine_cached_files_to_safetensors_file(
+pub fn _combine_cached_files_to_safetensors_file(
     model_id: &str,
     storage_directory: &str,
     target_file_path: &str,
