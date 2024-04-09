@@ -86,11 +86,33 @@ pub fn download_safetensors_file_by_model_id(model_id: &str) {
         let locally_available_hashes =
             hasher::get_locally_available_hashes(layers_to_hashes_map.values().cloned().collect());
 
-        let model_layers_to_download: Vec<_> = layers_to_hashes_map
+        let mut model_layers_to_download: Vec<_> = layers_to_hashes_map
             .iter()
             .filter(|&(_, v)| !locally_available_hashes.contains(v))
             .map(|(k, _)| k.to_string())
             .collect();
+
+        // TEMPORARY OVERRIDE
+        // Given we don't have the layers to hashes map available yet,
+        // If it is empty, then we will just download all the layers
+
+        if layers_to_hashes_map.len() == 0 {
+            println!("Layer to Hashes Map is missing, downloading all layers instead...");
+            let mut all_layer_names: Vec<_> = model_header.raw_header
+                .as_object()
+                .unwrap()
+                .keys()
+                .filter(|k| k.to_string() !="__metadata__")
+                .map(|n| n.to_string())
+                .collect();
+            model_layers_to_download.clear();
+            model_layers_to_download.append(&mut all_layer_names);
+        }
+
+        if model_layers_to_download.len() == 0 {
+            println!("All layers already downloaded");
+            continue;
+        }
 
         println!("Downloading {} layers", model_layers_to_download.len());
 
