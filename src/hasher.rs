@@ -1,6 +1,9 @@
 use std::{collections::HashMap, fs};
 
+use serde_json::Value;
 use sha2::{Digest, Sha256};
+
+use reqwest::blocking::Client;
 
 use crate::download;
 
@@ -20,6 +23,11 @@ pub struct ModelHeader {
 }
 
 pub fn get_locally_available_hashes(storage_dir: &str) -> Vec<String> {
+    // If storage dir does not exist, create it first
+    if fs::metadata(storage_dir).is_err() {
+        fs::create_dir_all(storage_dir).expect("Failed to create storage directory");
+    }
+    // Search through available hases
     let locally_available_hashes: Vec<String> = fs::read_dir(storage_dir)
         .unwrap()
         .filter_map(|entry| {
@@ -27,12 +35,15 @@ pub fn get_locally_available_hashes(storage_dir: &str) -> Vec<String> {
                 .ok()
                 .and_then(|dir_entry| dir_entry.file_name().into_string().ok())
         })
+        .map(|entry| entry.to_string())
         .collect();
 
-    println!(
-        "{} layers already available locally",
-        locally_available_hashes.len()
-    );
+    // println!("{}", locally_available_hashes[0]);
+
+    // println!(
+    //     "{} layers already available locally",
+    //     locally_available_hashes.len()
+    // );
 
     locally_available_hashes
 }
@@ -41,29 +52,36 @@ pub fn get_model_file_hashes(
     model_id: &str,
     file_name: &str,
 ) -> (ModelHeader, HashMap<String, String>) {
-    // TODO: Implement this retrieval from the registry
-    let mut layer_to_hash_map = HashMap::new();
-    // layer_to_hash_map.insert(
-    //     "fake-layer-name".to_string(),
-    //     "fake-layer-hash-abc123".to_string(),
-    // );
+    let client = Client::new();
 
-    // KoboldAI/fairseq-dense-1.3B: lm_head.weight
-    layer_to_hash_map.insert(
-        "lm_head.weight".to_string(),
-        "699a0dd9f0ce1218da2b7fbc61d73dfd922595f4cbf573e5bc222a0991d08c18".to_string(),
-    );
-    layer_to_hash_map.insert(
-        "model.layers.9.self_attn_layer_norm.weight".to_string(),
-        "5998cac70b9ca80e85f3404cddd785c52701743a80fdc322df947b52071fb55a".to_string(),
-    );
+    // TODO: Pass this as an env var
+    // TODO: Support custom base URLs
+    let registry_base_url = "http://localhost:3000";
 
-    let file_url = &download::get_download_url_from_model_id(model_id, file_name);
+    let model_hashes_url = format!("{}/results/{}/hashes.json", registry_base_url, model_id);
+
+    // TODO: Error handling
+    let response = client.get(model_hashes_url).send().unwrap();
+
+    let hashes: Value = response.json().unwrap();
+    let mut layer_to_hash_map: HashMap<String, String> = HashMap::new();
+
+    for (key, value) in hashes.as_object().unwrap() {
+        // println!("{}", value);
+        if file_name == value.get("file_name").unwrap().as_str().unwrap() {
+            layer_to_hash_map.insert(
+                key.to_string(),
+                value.get("hash").unwrap().as_str().unwrap().to_string(),
+            );
+        }
+    }
+
+    let model_file_url = &download::get_download_url_from_model_id(model_id, file_name);
 
     // Download the header to understand the file
     // TODO: This could be retrieved and cached by the registry
     println!("Retrieving header for {}: {}", model_id, file_name);
-    let (header, header_length) = download::download_safetensors_header(file_url);
+    let (header, header_length) = download::download_safetensors_header(model_file_url);
 
     (
         ModelHeader {

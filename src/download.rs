@@ -84,26 +84,30 @@ pub fn download_safetensors_file_by_model_id(model_id: &str) {
         // (NOT IMPLEMENTED YET) This check here is a placeholder for the future where we actually have the hashes available
         let locally_available_hashes = hasher::get_locally_available_hashes(download_dir);
 
-        let mut model_layers_to_download: Vec<_> = layers_to_hashes_map
+        // println!("{}", layers_to_hashes_map.values().next().unwrap());
+
+        let mut model_layers_to_download: Vec<String> = layers_to_hashes_map
             .iter()
-            .filter(|&(_, v)| !locally_available_hashes.contains(v))
-            .map(|(k, _)| k.to_string())
+            .filter(|(_, layer_hash)| !locally_available_hashes.contains(layer_hash))
+            .map(|(ln, _)| ln)
+            .cloned()
             .collect();
 
         // TEMPORARY OVERRIDE
         // Given we don't have the layers to hashes map available yet,
         // If it is empty, then we will just download all the layers
 
+        let mut all_layer_names: Vec<_> = model_header
+            .raw_header
+            .as_object()
+            .unwrap()
+            .keys()
+            .filter(|k| k != &"__metadata__")
+            .map(|n| n.to_string())
+            .collect();
+
         if layers_to_hashes_map.is_empty() {
             println!("Layer to Hashes Map is missing, downloading all layers instead...");
-            let mut all_layer_names: Vec<_> = model_header
-                .raw_header
-                .as_object()
-                .unwrap()
-                .keys()
-                .filter(|k| k != &"__metadata__")
-                .map(|n| n.to_string())
-                .collect();
             model_layers_to_download.clear();
             model_layers_to_download.append(&mut all_layer_names);
         }
@@ -116,7 +120,11 @@ pub fn download_safetensors_file_by_model_id(model_id: &str) {
             continue;
         }
 
-        println!("Downloading {} layers", model_layers_to_download.len());
+        println!(
+            "{} Layers Total. {} Layers left to be downloaded",
+            all_layer_names.len(),
+            model_layers_to_download.len()
+        );
 
         // Setup the progress bars
         let main_bar = ProgressBar::new(model_layers_to_download.len() as u64).with_style(
@@ -137,17 +145,9 @@ pub fn download_safetensors_file_by_model_id(model_id: &str) {
             Some(model_layers_to_download),
             mp,
         )
-        .map(|(layer, layer_bytes)| {
-            // Generate the hash
-            // TODO: Once hashing is actually available from the registry, we should double check
-            // that the hashes match
-            let layer_hash = hasher::sha256_hash(&layer_bytes);
+        .for_each(|(layer, layer_bytes)| {
+            let layer_hash = layers_to_hashes_map.get(&layer.name).unwrap();
 
-            main_bar_clone.set_message(format!("Hashing: {}", layer.name));
-
-            (layer, layer_hash, layer_bytes)
-        })
-        .for_each(|(layer, layer_hash, layer_bytes)| {
             // Decide where to store the this layer by its hash
             // TODO: Handle this failure case ahead of time somehow
             let mut hashed_layer_path = PathBuf::new();
