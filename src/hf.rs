@@ -397,7 +397,7 @@ mod tests {
         ]"#;
 
         // Expected FileInfo struct
-        let expected_file_infos = vec![
+        let expected_file_infos = [
             FileInfo {
                 path: "file/path/example1.txt".to_string(),
                 size: 1024,
