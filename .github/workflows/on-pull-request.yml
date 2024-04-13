@@ -12,6 +12,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo check
+  run-tests:
+    needs:
+      - check-compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test
   fmt:
     needs:
       - check-compile
@@ -40,6 +48,7 @@ jobs:
     needs:
       - fmt
       - clippy
+      - run-tests
       # - cargo-deny
     runs-on: ubuntu-latest
     steps:
