@@ -61,6 +61,7 @@ pub fn get_model_file_hashes(
     let model_hashes_url = format!("{}/results/{}/hashes.json", registry_base_url, model_id);
 
     // TODO: Error handling
+    // TODO: Handle the situation where the registry is unavailable by downloading all of the layers
     let response = client.get(model_hashes_url).send().unwrap();
 
     let hashes: Value = response.json().unwrap();

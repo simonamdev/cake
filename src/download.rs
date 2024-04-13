@@ -72,19 +72,13 @@ pub fn download_safetensors_file_by_model_id(model_id: &str) {
         );
 
         let file_url = &get_download_url_from_model_id(model_id, file_name);
-        // TODO: Add the check here that will somehow find out if we already have some hashes on our filesystem
-        // That depends on having a source of truth for the hashes
-        // For now, a "hash registry" can be implemented
-        // In future, maybe this field could be added to the safetensors spec itself
 
-        // (NOT IMPLEMENTED YET) Retrieve the hashes for this model
+        // TODO: Propose that this part that determines the hashes could be added to the safetensors spec itself
+        // TODO: Handle the situation where the registry is unavailable by downloading all of the layers
         let (model_header, layers_to_hashes_map) =
             hasher::get_model_file_hashes(model_id, file_name);
 
-        // (NOT IMPLEMENTED YET) This check here is a placeholder for the future where we actually have the hashes available
         let locally_available_hashes = hasher::get_locally_available_hashes(download_dir);
-
-        // println!("{}", layers_to_hashes_map.values().next().unwrap());
 
         let mut model_layers_to_download: Vec<String> = layers_to_hashes_map
             .iter()
@@ -92,10 +86,6 @@ pub fn download_safetensors_file_by_model_id(model_id: &str) {
             .map(|(ln, _)| ln)
             .cloned()
             .collect();
-
-        // TEMPORARY OVERRIDE
-        // Given we don't have the layers to hashes map available yet,
-        // If it is empty, then we will just download all the layers
 
         let mut all_layer_names: Vec<_> = model_header
             .raw_header
@@ -106,6 +96,7 @@ pub fn download_safetensors_file_by_model_id(model_id: &str) {
             .map(|n| n.to_string())
             .collect();
 
+        // If we have no hashes available, then download all the layers instead
         if layers_to_hashes_map.is_empty() {
             println!("Layer to Hashes Map is missing, downloading all layers instead...");
             model_layers_to_download.clear();
@@ -114,7 +105,7 @@ pub fn download_safetensors_file_by_model_id(model_id: &str) {
 
         if model_layers_to_download.is_empty() {
             println!(
-                "All layers already downloaded for {} of {}",
+                "All layers have already been downloaded for {} of {}",
                 file_name, model_id
             );
             continue;
@@ -166,7 +157,7 @@ pub fn download_safetensors_file_by_model_id(model_id: &str) {
             // Increment the progress bar
             main_bar_clone.inc(1);
 
-            main_bar_clone.set_message(format!("Last complete: {}", layer.name));
+            main_bar_clone.set_message(format!("Last completed: {}", layer.name));
         });
 
         main_bar_clone.finish_with_message(format!("{} All done!", file_name));
