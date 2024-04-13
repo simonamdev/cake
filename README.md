@@ -23,7 +23,7 @@ Leveraging the [hugginface/safetensors](https://huggingface.co/docs/safetensors/
 - [x] Setup linting in CI
 - [x] Setup local storage based on layer hashes
 - [ ] On push to `main`, build the executable and create a release
-- [ ] Make CLI arguments easier to use (example: `cake download foo` instead of `cake download --model-id foo`)
+- [x] Make CLI arguments easier to use for download (example: `cake download foo` instead of `cake download --model-id foo`)
 - [ ] Setup config and allow overriding of storage folder, registry URL, etc
 - [ ] Setup a public facing instance of the hashes registry
 
@@ -35,9 +35,9 @@ Currently `cake` can only be built from source. Pre-built binaries coming soon�
 
 `cake help` to view how to use it.
 
-`cake download --model-id <MODEL_ID>` to download a model to a folder relative to `cake` called `storage` (config coming soon™️).
+`cake download <MODEL_ID>` to download a model to a folder relative to `cake` called `download` (config coming soon™️).
 
-Example: `cake download --model-id KoboldAI/fairseq-dense-1.3B` will download this model: https://huggingface.co/KoboldAI/fairseq-dense-1.3B from the `main` branch.
+Example: `cake download KoboldAI/fairseq-dense-1.3B` will download this model: https://huggingface.co/KoboldAI/fairseq-dense-1.3B from the `main` branch.
 
 ## Contributing
 

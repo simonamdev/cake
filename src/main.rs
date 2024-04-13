@@ -3,7 +3,7 @@ use std::fs::{self, File};
 use std::io::Read;
 use std::time::Duration;
 
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 
 use rayon::iter::ParallelIterator;
 use serde_json::{json, Map, Value};
@@ -20,6 +20,7 @@ mod registry;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
+#[command(propagate_version = true)]
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
@@ -38,12 +39,14 @@ enum Commands {
 
     CheckModels {},
 
-    Download {
-        #[arg(long)]
-        model_id: String,
-    },
+    Download(DownloadArgs),
 
     Registry {},
+}
+
+#[derive(Args)]
+struct DownloadArgs {
+    model_id: String,
 }
 
 fn main() {
@@ -56,12 +59,11 @@ fn main() {
         Some(Commands::Compare { a, b }) => {
             compare::compare_tensors_between_files(a, b);
         }
-        Some(Commands::Download { model_id }) => {
-            // Download safetensor files in pieces then create a new safetensors files
+        Some(Commands::Download(download_args)) => {
+            // Download safetensor files one at a time, parallelising layers of the same file.
             // Known issue: using this will not create an equivalent file to that available on huggingface due to
-            // differences in how the json header is formatted, however it will create a valid safetensors file
-            // Known issue: only works for models with a single file called "model.safetensors"
-            download::download_safetensors_file_by_model_id(model_id)
+            // differences in how the json header is formatted, however it will create a valid safetensors file.
+            download::download_safetensors_file_by_model_id(&download_args.model_id)
         }
         Some(Commands::CheckModels {}) => {
             // Get the model ids and file names from the JSON file
