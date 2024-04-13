@@ -381,7 +381,7 @@ mod tests {
     }
 
     #[test]
-    fn test__fill_file_info_from_json() {
+    fn test_fill_file_info_from_json() {
         // Mock JSON string for testing
         let json_string = r#"[
             {
