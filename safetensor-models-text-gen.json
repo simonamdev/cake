@@ -93735,15 +93735,6 @@
     "model-00004-of-00005.safetensors",
     "model-00005-of-00005.safetensors"
   ],
-  "ncoop57/test-fuyu-finetune": [
-    "model-00001-of-00007.safetensors",
-    "model-00002-of-00007.safetensors",
-    "model-00003-of-00007.safetensors",
-    "model-00004-of-00007.safetensors",
-    "model-00005-of-00007.safetensors",
-    "model-00006-of-00007.safetensors",
-    "model-00007-of-00007.safetensors"
-  ],
   "ncsgobubble/Llama-7B-rollercoaster_v2": [
     "model-00001-of-00002.safetensors",
     "model-00002-of-00002.safetensors"
@@ -96934,9 +96925,6 @@
     "model-00008-of-00008.safetensors"
   ],
   "papahawk/gpt2-1.5b": [
-    "model.safetensors"
-  ],
-  "papahawk/keya-560m": [
     "model.safetensors"
   ],
   "papasega/distilbertGPTgeneratedFluency": [
@@ -101377,9 +101365,6 @@
     "model-00002-of-00002.safetensors"
   ],
   "robertsw/airoboros-13b-gpt4-1.2-AWQ": [
-    "model.safetensors"
-  ],
-  "robertsw/airoboros-65b-gpt4-1.4-AWQ": [
     "model.safetensors"
   ],
   "robertsw/airoboros-65b-gpt4-1.4-AWQ2": [
@@ -109337,27 +109322,6 @@
     "model-00290-of-00291.safetensors",
     "model-00291-of-00291.safetensors"
   ],
-  "typeof/idefics-9b": [
-    "model-00001-of-00019.safetensors",
-    "model-00002-of-00019.safetensors",
-    "model-00003-of-00019.safetensors",
-    "model-00004-of-00019.safetensors",
-    "model-00005-of-00019.safetensors",
-    "model-00006-of-00019.safetensors",
-    "model-00007-of-00019.safetensors",
-    "model-00008-of-00019.safetensors",
-    "model-00009-of-00019.safetensors",
-    "model-00010-of-00019.safetensors",
-    "model-00011-of-00019.safetensors",
-    "model-00012-of-00019.safetensors",
-    "model-00013-of-00019.safetensors",
-    "model-00014-of-00019.safetensors",
-    "model-00015-of-00019.safetensors",
-    "model-00016-of-00019.safetensors",
-    "model-00017-of-00019.safetensors",
-    "model-00018-of-00019.safetensors",
-    "model-00019-of-00019.safetensors"
-  ],
   "typeof/miqu-70b-12": [
     "model-00001-of-00147.safetensors",
     "model-00002-of-00147.safetensors",
@@ -116748,89 +116712,6 @@
     "model-00004-of-00006.safetensors",
     "model-00005-of-00006.safetensors",
     "model-00006-of-00006.safetensors"
-  ],
-  "yunhuan929/falcon_180b": [
-    "model-00001-of-00081.safetensors",
-    "model-00002-of-00081.safetensors",
-    "model-00003-of-00081.safetensors",
-    "model-00004-of-00081.safetensors",
-    "model-00005-of-00081.safetensors",
-    "model-00006-of-00081.safetensors",
-    "model-00007-of-00081.safetensors",
-    "model-00008-of-00081.safetensors",
-    "model-00009-of-00081.safetensors",
-    "model-00010-of-00081.safetensors",
-    "model-00011-of-00081.safetensors",
-    "model-00012-of-00081.safetensors",
-    "model-00013-of-00081.safetensors",
-    "model-00014-of-00081.safetensors",
-    "model-00015-of-00081.safetensors",
-    "model-00016-of-00081.safetensors",
-    "model-00017-of-00081.safetensors",
-    "model-00018-of-00081.safetensors",
-    "model-00019-of-00081.safetensors",
-    "model-00020-of-00081.safetensors",
-    "model-00021-of-00081.safetensors",
-    "model-00022-of-00081.safetensors",
-    "model-00023-of-00081.safetensors",
-    "model-00024-of-00081.safetensors",
-    "model-00025-of-00081.safetensors",
-    "model-00026-of-00081.safetensors",
-    "model-00027-of-00081.safetensors",
-    "model-00028-of-00081.safetensors",
-    "model-00029-of-00081.safetensors",
-    "model-00030-of-00081.safetensors",
-    "model-00031-of-00081.safetensors",
-    "model-00032-of-00081.safetensors",
-    "model-00033-of-00081.safetensors",
-    "model-00034-of-00081.safetensors",
-    "model-00035-of-00081.safetensors",
-    "model-00036-of-00081.safetensors",
-    "model-00037-of-00081.safetensors",
-    "model-00038-of-00081.safetensors",
-    "model-00039-of-00081.safetensors",
-    "model-00040-of-00081.safetensors",
-    "model-00041-of-00081.safetensors",
-    "model-00042-of-00081.safetensors",
-    "model-00043-of-00081.safetensors",
-    "model-00044-of-00081.safetensors",
-    "model-00045-of-00081.safetensors",
-    "model-00046-of-00081.safetensors",
-    "model-00047-of-00081.safetensors",
-    "model-00048-of-00081.safetensors",
-    "model-00049-of-00081.safetensors",
-    "model-00050-of-00081.safetensors",
-    "model-00051-of-00081.safetensors",
-    "model-00052-of-00081.safetensors",
-    "model-00053-of-00081.safetensors",
-    "model-00054-of-00081.safetensors",
-    "model-00055-of-00081.safetensors",
-    "model-00056-of-00081.safetensors",
-    "model-00057-of-00081.safetensors",
-    "model-00058-of-00081.safetensors",
-    "model-00059-of-00081.safetensors",
-    "model-00060-of-00081.safetensors",
-    "model-00061-of-00081.safetensors",
-    "model-00062-of-00081.safetensors",
-    "model-00063-of-00081.safetensors",
-    "model-00064-of-00081.safetensors",
-    "model-00065-of-00081.safetensors",
-    "model-00066-of-00081.safetensors",
-    "model-00067-of-00081.safetensors",
-    "model-00068-of-00081.safetensors",
-    "model-00069-of-00081.safetensors",
-    "model-00070-of-00081.safetensors",
-    "model-00071-of-00081.safetensors",
-    "model-00072-of-00081.safetensors",
-    "model-00073-of-00081.safetensors",
-    "model-00074-of-00081.safetensors",
-    "model-00075-of-00081.safetensors",
-    "model-00076-of-00081.safetensors",
-    "model-00077-of-00081.safetensors",
-    "model-00078-of-00081.safetensors",
-    "model-00079-of-00081.safetensors",
-    "model-00080-of-00081.safetensors",
-    "model-00081-of-00081.safetensors"
   ],
   "yuntaeyang/KoSOLAR-10.7B-dpo-v1.0": [
     "model-00001-of-00005.safetensors",
