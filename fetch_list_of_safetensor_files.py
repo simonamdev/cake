@@ -5,30 +5,38 @@ model_id_to_safetensor_files: dict[str, list[str]] = {}
 
 api = HfApi()
 model_list = []
-models = api.list_models(filter=ModelFilter(task='text-generation', library='safetensors'))
+models = api.list_models(library='safetensors')
+model_found = False
 
-for model in models:
-    print(model.modelId, model.author)
+with open('latest-safetensor-models-text-gen.jsonl', 'a+') as f:
+    for model in models:
 
-    try:
-        repo_info = api.repo_info(repo_id=model.modelId)
-        # print(repo_info.siblings)
-        safetensors_files = [
-            file.rfilename for file in repo_info.siblings if file.rfilename.endswith('safetensors')
-        ]
-        print(safetensors_files)
-        model_id_to_safetensor_files[model.modelId] = sorted(safetensors_files)
-    except utils._errors.GatedRepoError as e:
-        print(e)
+        print(model.modelId, model.author)
+        print(model.tags)
 
-print(model_id_to_safetensor_files.keys())
-print(model_id_to_safetensor_files)
-print(len(model_id_to_safetensor_files))
+        if not model_found and not model.modelId == 'Coelhomatias/deit-cvc-drop-aug':
+            continue
 
-with open('safetensor-models-text-gen.json', 'w') as f:
-    f.write(
-        json.dumps(
-            model_id_to_safetensor_files,
-            indent=2
+        model_found = True
+
+        try:
+            repo_info = api.repo_info(repo_id=model.modelId)
+            # print(repo_info.siblings)
+            safetensors_files = [
+                file.rfilename for file in repo_info.siblings if file.rfilename.endswith('safetensors')
+            ]
+            print(safetensors_files)
+        except utils._errors.GatedRepoError as e:
+            print(e)
+            continue
+        except utils._errors.RepositoryNotFoundError as e:
+            print(e)
+            continue
+
+        f.write(
+            json.dumps(
+                {'model_id': model.modelId,
+                    'files': sorted(safetensors_files)},
+            )
         )
-    )
+        f.write('\n')

@@ -29,3 +29,4 @@ cache/
 test.safetensors
 retry.sh
 scripts/update.sh
+results.tar.gz
