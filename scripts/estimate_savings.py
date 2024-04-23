@@ -30,11 +30,10 @@ def calculate_byte_content(result_file_paths):
             byte_count = offsets[1] - offsets[0]
 
             file_byte_count += byte_count
-            if 'compressed_size' in tensor_metadata:
-                if tensor_metadata['compressed_size'] < tensor_metadata['size']:
-                    file_byte_count_compressed += tensor_metadata['compressed_size']
-                else:
-                    file_byte_count_compressed += tensor_metadata['size']
+            if tensor_metadata['compressed_size'] < tensor_metadata['size']:
+                file_byte_count_compressed += tensor_metadata['compressed_size']
+            else:
+                file_byte_count_compressed += tensor_metadata['size']
 
             if layer_hash in tracked_layer_hashes:
                 duple_layer_count += 1
@@ -76,7 +75,7 @@ def main():
     print("Number of files involved:", num_files)
     print(f'Total Tensor count: {layer_count}. Dupe Tensor count: {dupe_layer_count} ({round(dupe_layer_count / layer_count * 100, 2)}%)')
     print(f"Total byte content across all files: {round(total_tb, 2)}TB", )
-    print(f'Total byte content across all files when compressed: {round(total_tb_compressed, 2)}TB (NOT CORRECT DUE TO MISSING DATA')
+    print(f'Total byte content across all files when compressed: {round(total_tb_compressed, 2)}TB')
     print(f"Amount of bytes saved if duplicate layers are deduped (absolute) {round(bytes_saved_tb, 2)}TB:")
     print("Amount of bytes saved if duplicate layers are deduped (percentage):", round(percent_saved, 2), "%")
 
