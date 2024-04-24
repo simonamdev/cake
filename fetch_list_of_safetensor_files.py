@@ -1,5 +1,7 @@
 import json
+import os
 from huggingface_hub import HfApi, ModelFilter, utils
+from time import sleep
 
 model_id_to_safetensor_files: dict[str, list[str]] = {}
 
@@ -8,16 +10,23 @@ model_list = []
 models = api.list_models(library='safetensors')
 model_found = False
 
+with open('latest-safetensor-models-text-gen.jsonl', 'r') as f:
+    all_models = f.readlines()
+    model_names = [json.loads(m)['model_id'] for m in all_models if m.strip() != '']
+    last_model_id = model_names[-2]
+    print(f'Continuing from {last_model_id}')
+
 with open('latest-safetensor-models-text-gen.jsonl', 'a+') as f:
     for model in models:
-
-        print(model.modelId, model.author)
-        print(model.tags)
-
-        if not model_found and not model.modelId == 'Coelhomatias/deit-cvc-drop-aug':
+        sleep(0.001)
+        if model.modelId in model_names:
+            print(f'Skipping {model.modelId}')
             continue
 
         model_found = True
+
+        print(model.modelId, model.author)
+        print(model.tags)
 
         try:
             repo_info = api.repo_info(repo_id=model.modelId)
