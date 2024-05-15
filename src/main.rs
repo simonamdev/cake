@@ -30,6 +30,8 @@ struct Cli {
 enum Commands {
     HashingExperiment {},
 
+    HashSingleModel(HashSingleModelArgs),
+
     Compare {
         #[arg(long)]
         a: String,
@@ -49,12 +51,20 @@ struct DownloadArgs {
     model_id: String,
 }
 
+#[derive(Args)]
+struct HashSingleModelArgs {
+    model_id: String,
+}
+
 fn main() {
     let cli = Cli::parse();
 
     match &cli.command {
         Some(Commands::HashingExperiment {}) => {
             run_hashing_experiment();
+        }
+        Some(Commands::HashSingleModel(hash_single_model_args)) => {
+            generate_hashes_by_model_id(&hash_single_model_args.model_id);
         }
         Some(Commands::Compare { a, b }) => {
             compare::compare_tensors_between_files(a, b);
@@ -110,6 +120,86 @@ fn main() {
         }
         None => {}
     }
+}
+
+fn generate_hashes_by_model_id(model_id: &str) {
+    let model_info_result = hf::get_model_info(model_id);
+    if model_info_result.is_err() {
+        // TODO: Handle better, print the error message too
+        panic!("Unable to retrieve model info when attempting download!")
+    }
+
+    let model_info = model_info_result.unwrap();
+
+    let model_filenames: Vec<&String> = model_info
+        .siblings
+        .as_slice()
+        .iter()
+        .map(|s| &s.rfilename)
+        .collect();
+
+    let safetensors_filenames: Vec<&String> = model_filenames
+        .into_iter()
+        .filter(|mf| mf.ends_with(".safetensors"))
+        .collect();
+
+    let model_parts: Vec<&str> = model_id.split('/').collect();
+    let hashes_file_path = get_hashes_file_dir_and_path(model_parts[0], model_parts[1]);
+    let hashes_file_path_clone = hashes_file_path.1.clone();
+    let hashes_file_exists = fs::metadata(hashes_file_path_clone).is_ok();
+    if hashes_file_exists {
+        println!("{} skipped as hashes file already exists", model_id);
+        return;
+    }
+
+    // Download each file separately and then merge the results if there are multiple files
+    let mut file_index = 0;
+    let file_count = safetensors_filenames.len();
+    let mut file_results: Vec<Map<String, Value>> = Vec::new();
+    for file_name in safetensors_filenames {
+        // For now skip adapter models as they are not being parsed correctly
+        if file_name.contains("adapter_model") {
+            println!(
+                "{} skipped due to being an adapter model file (temporary limitation)",
+                model_id
+            );
+            continue;
+        }
+
+        println!(
+            "[File {}/{}] Downloading model layers from {}",
+            file_index + 1,
+            file_count,
+            file_name,
+        );
+        let hashed_layers_result = download_and_hash_layers(model_id, file_name);
+        // If no results are returned, skip this file
+        if hashed_layers_result.is_empty() {
+            println!("{} skipped due to invalid header length", model_id);
+            continue;
+        }
+        file_results.push(hashed_layers_result);
+        file_index += 1;
+    }
+
+    // Merge the results together if there are multiple
+    let mut output_result: Map<String, Value> = Map::new();
+    if file_results.len() == 1 {
+        // TODO: Not sure if there's an idiomatic way to avoid this clone
+        output_result.clone_from(file_results.first().unwrap())
+    } else {
+        for result in file_results.iter() {
+            for (key, value) in result {
+                // TODO: Another clone which feels like it can be avoided
+                output_result.insert(key.to_string(), value.clone());
+            }
+        }
+    }
+
+    fs::create_dir_all(hashes_file_path.0).unwrap();
+    let file = File::create(hashes_file_path.1).unwrap();
+    println!("Outputting hash results...");
+    serde_json::to_writer_pretty(file, &output_result).unwrap();
 }
 
 fn run_hashing_experiment() {
@@ -176,7 +266,7 @@ fn run_hashing_experiment() {
         let mut output_result: Map<String, Value> = Map::new();
         if file_results.len() == 1 {
             // TODO: Not sure if there's an idiomatic way to avoid this clone
-            output_result = file_results.first().unwrap().clone()
+            output_result.clone_from(file_results.first().unwrap())
         } else {
             for result in file_results.iter() {
                 for (key, value) in result {
