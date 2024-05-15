@@ -172,7 +172,7 @@ fn generate_hashes_by_model_id(model_id: &str) {
             file_count,
             file_name,
         );
-        let hashed_layers_result = download_and_hash_layers(model_id, &file_name);
+        let hashed_layers_result = download_and_hash_layers(model_id, file_name);
         // If no results are returned, skip this file
         if hashed_layers_result.is_empty() {
             println!("{} skipped due to invalid header length", model_id);
@@ -186,7 +186,7 @@ fn generate_hashes_by_model_id(model_id: &str) {
     let mut output_result: Map<String, Value> = Map::new();
     if file_results.len() == 1 {
         // TODO: Not sure if there's an idiomatic way to avoid this clone
-        output_result = file_results.first().unwrap().clone()
+        output_result.clone_from(file_results.first().unwrap())
     } else {
         for result in file_results.iter() {
             for (key, value) in result {
@@ -266,7 +266,7 @@ fn run_hashing_experiment() {
         let mut output_result: Map<String, Value> = Map::new();
         if file_results.len() == 1 {
             // TODO: Not sure if there's an idiomatic way to avoid this clone
-            output_result = file_results.first().unwrap().clone()
+            output_result.clone_from(file_results.first().unwrap())
         } else {
             for result in file_results.iter() {
                 for (key, value) in result {
