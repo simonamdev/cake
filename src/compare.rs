@@ -12,17 +12,17 @@ pub fn compare_hashes_via_registry(model_id_a: &str, model_id_b: &str) {
 
     // Extract the hashes
     let model_a_hashes: Vec<String> = model_a_layers_to_hashes
-        .iter()
-        .map(|(_, v)| v.to_string())
+        .values()
+        .map(|v| v.to_string())
         .collect();
     let model_b_hashes: Vec<String> = model_b_layers_to_hashes
-        .iter()
-        .map(|(_, v)| v.to_string())
+        .values()
+        .map(|v| v.to_string())
         .collect();
 
     let mut same_hash_counter = 0;
     for hash_a in model_a_hashes.iter() {
-        if model_b_hashes.contains(&hash_a) {
+        if model_b_hashes.contains(hash_a) {
             same_hash_counter += 1;
         }
     }
