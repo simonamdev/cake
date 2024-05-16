@@ -9,7 +9,6 @@ use rayon::iter::ParallelIterator;
 use serde_json::{json, Map, Value};
 
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
-use lz4::block::compress;
 
 mod compare;
 mod download;
@@ -308,8 +307,6 @@ struct LayerMetadata {
     layer: Layer,
     hash: String,
     size: u64,
-    compressed_hash: String,
-    compressed_size: i64,
 }
 
 fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Value> {
@@ -339,23 +336,9 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
 
     let layers_metadata: Vec<LayerMetadata> = download::par_download_layers(header, url, None, mp)
         .map(|(layer, tensor)| {
-            // Perform the hashing part for uncompressed version
+            // Perform the hashing
             main_bar_clone.set_message(format!("Hashing: {}", layer.name));
             let hash = hasher::sha256_hash(&tensor);
-            // Perform the hashing part for compressed version
-            // Compress the tensor
-            main_bar_clone.set_message(format!("Compressing: {}", layer.name));
-            let compressed_tensor = compress(&tensor, None, false);
-            main_bar_clone.set_message(format!("Hashing Compressed: {}", layer.name));
-            let mut compressed_hash: String = "N/A".to_string();
-            let mut compressed_size: i64 = -1;
-            match compressed_tensor {
-                Ok(ct) => {
-                    compressed_hash = hasher::sha256_hash(&ct);
-                    compressed_size = ct.len() as i64;
-                }
-                Err(_e) => {}
-            }
             main_bar_clone.inc(1);
             main_bar_clone.set_message("Waiting...");
 
@@ -363,8 +346,6 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
                 layer,
                 hash,
                 size: tensor.len() as u64,
-                compressed_hash,
-                compressed_size,
             }
         })
         .collect();
@@ -375,9 +356,7 @@ fn download_and_hash_layers(model_id: &str, file_name: &str) -> Map<String, Valu
         let tensor_result = json!({
             "data_offsets": vec![layer_metadata.layer.offset_start, layer_metadata.layer.offset_end],
             "hash": layer_metadata.hash,
-            "compressed_hash": layer_metadata.compressed_hash,
             "size": layer_metadata.size,
-            "compressed_size": layer_metadata.compressed_size,
             "file_name": file_name,
         });
         result_obj.insert(layer_metadata.layer.name, tensor_result);
