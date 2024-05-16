@@ -39,6 +39,8 @@ enum Commands {
         b: String,
     },
 
+    CompareHashes(CompareHashesArgs),
+
     CheckModels {},
 
     Download(DownloadArgs),
@@ -49,6 +51,12 @@ enum Commands {
 #[derive(Args)]
 struct DownloadArgs {
     model_id: String,
+}
+
+#[derive(Args)]
+struct CompareHashesArgs {
+    model_id_a: String,
+    model_id_b: String,
 }
 
 #[derive(Args)]
@@ -69,6 +77,10 @@ fn main() {
         Some(Commands::Compare { a, b }) => {
             compare::compare_tensors_between_files(a, b);
         }
+        Some(Commands::CompareHashes(compare_hashes_args)) => compare::compare_hashes_via_registry(
+            &compare_hashes_args.model_id_a,
+            &compare_hashes_args.model_id_b,
+        ),
         Some(Commands::Download(download_args)) => {
             // Download safetensor files one at a time, parallelising layers of the same file.
             // Known issue: using this will not create an equivalent file to that available on huggingface due to
