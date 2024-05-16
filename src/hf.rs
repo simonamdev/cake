@@ -1,6 +1,8 @@
 use anyhow::{Error, Ok};
 use reqwest::blocking::Client;
+use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use serde_json::{self};
+use std::env;
 use std::result::Result::Ok as stdOk;
 
 use serde::{Deserialize, Serialize};
@@ -12,7 +14,6 @@ pub struct ModelInfo {
     sha: Option<String>,
     private: bool,
     disabled: Option<bool>,
-    gated: bool,
     downloads: i32,
     likes: i32,
     library_name: Option<String>,
@@ -54,7 +55,15 @@ pub fn get_model_info(model_id: &str) -> Result<ModelInfo, Error> {
         model_id
     );
 
-    let response = client.get(url).send()?;
+    // Set up headers
+    let mut headers = HeaderMap::new();
+
+    if let stdOk(bearer_token) = env::var("HF_API_KEY") {
+        let bearer_value = format!("Bearer {}", bearer_token);
+        headers.insert(AUTHORIZATION, HeaderValue::from_str(&bearer_value).unwrap());
+    }
+
+    let response = client.get(url).headers(headers).send()?;
 
     let body = response.text().unwrap();
     println!("{}", body);
@@ -127,7 +136,6 @@ mod tests {
             "sha": "sha_value",
             "private": false,
             "disabled": false,
-            "gated": false,
             "downloads": 100,
             "likes": 50,
             "library_name": "library_name",
@@ -143,7 +151,6 @@ mod tests {
             sha: Some("sha_value".to_string()),
             private: false,
             disabled: Some(false),
-            gated: false,
             downloads: 100,
             likes: 50,
             library_name: Some("library_name".to_string()),
@@ -173,7 +180,6 @@ mod tests {
             "lastModified": "2023-12-03T10:31:01.000Z",
             "private": false,
             "disabled": false,
-            "gated": false,
             "pipeline_tag": "text-generation",
             "tags": [
                 "transformers",
@@ -309,7 +315,6 @@ mod tests {
             sha: Some("d7a8e6b389680aab92fa9ec3d33067a7d7a35cd0".to_string()),
             private: false,
             disabled: Some(false),
-            gated: false,
             downloads: 5,
             likes: 3,
             library_name: Some("transformers".to_string()),

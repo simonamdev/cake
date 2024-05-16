@@ -158,6 +158,7 @@ fn generate_hashes_by_model_id(model_id: &str) {
     let model_parts: Vec<&str> = model_id.split('/').collect();
     let hashes_file_path = get_hashes_file_dir_and_path(model_parts[0], model_parts[1]);
     let hashes_file_path_clone = hashes_file_path.1.clone();
+    let target_path = hashes_file_path_clone.clone();
     let hashes_file_exists = fs::metadata(hashes_file_path_clone).is_ok();
     if hashes_file_exists {
         println!("{} skipped as hashes file already exists", model_id);
@@ -210,7 +211,7 @@ fn generate_hashes_by_model_id(model_id: &str) {
 
     fs::create_dir_all(hashes_file_path.0).unwrap();
     let file = File::create(hashes_file_path.1).unwrap();
-    println!("Outputting hash results...");
+    println!("Outputting hash results to {}...", target_path);
     serde_json::to_writer_pretty(file, &output_result).unwrap();
 }
 

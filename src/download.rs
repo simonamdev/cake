@@ -1,8 +1,10 @@
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use rayon::iter::ParallelIterator;
 use rayon::prelude::*;
+use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use reqwest::{blocking::Client, Error};
 use serde_json::{json, Value};
+use std::env;
 use std::fs::{self, File};
 use std::io::prelude::*;
 use std::io::Read;
@@ -319,12 +321,18 @@ fn download_part_of_file(
 ) -> Result<Vec<u8>, Error> {
     let chunk_size = 1024; // 1KB
 
+    // Set up headers
+    let mut headers = HeaderMap::new();
+
+    if let Ok(bearer_token) = env::var("HF_API_KEY") {
+        let bearer_value = format!("Bearer {}", bearer_token);
+        headers.insert(AUTHORIZATION, HeaderValue::from_str(&bearer_value).unwrap());
+    }
+
     // Range is exclusive. Example: 0-499 is byte 0 to byte 499, so 500 bytes in total
     let range_header_value = format!("bytes={}-{}", byte_index, byte_index + number_of_bytes - 1);
-    let mut response = client
-        .get(file_url)
-        .header("Range", range_header_value)
-        .send()?;
+    headers.insert("Range", HeaderValue::from_str(&range_header_value).unwrap());
+    let mut response = client.get(file_url).headers(headers).send()?;
 
     // let status_code = response.status();
     // println!("Status Code: {}", status_code);
