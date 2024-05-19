@@ -13,8 +13,6 @@ model_found = False
 with open('latest-safetensor-models-text-gen.jsonl', 'r') as f:
     all_models = f.readlines()
     model_names = [json.loads(m)['model_id'] for m in all_models if m.strip() != '']
-    last_model_id = model_names[-2]
-    print(f'Continuing from {last_model_id}')
 
 with open('latest-safetensor-models-text-gen.jsonl', 'a+') as f:
     for model in models:
