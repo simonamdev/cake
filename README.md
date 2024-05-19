@@ -10,7 +10,9 @@
 
 </div>
 
-**cake** is an experimental, more efficient way to download and store Machine Learning models from [🤗 Hugging Face](https://huggingface.co/). Think of it as 🐋 docker, but for ML models.
+Did you know that across 19,000 models in the hugginface `text-gen` category, there is 15.5% of duplication in weights? This results in approximately 43 Terabytes of redundantly stored weights. Arvix paper with the full result coming soon™️.
+
+**cake** is an more efficient way to download and store Machine Learning models from [🤗 Hugging Face](https://huggingface.co/). Think of it as 🐋 docker, but for ML models.
 
 Leveraging the [hugginface/safetensors](https://huggingface.co/docs/safetensors/en/index) format, it enables:
 
